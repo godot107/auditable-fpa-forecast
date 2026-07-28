@@ -1,0 +1,32 @@
+# Environments
+.venv/
+venv/
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Odoo container state
+docker/odoo-data/
+docker/pg-data/
+
+# Regenerable artifacts. Data snapshots are pinned vintages — reproducible from
+# the EDGAR ingest — so they stay out of git, but keep the directory itself.
+data/*
+!data/.gitkeep
+
+# Generated reports, except the figures the README embeds.
+reports/*
+!reports/.gitkeep
+
+# Audit log is runtime state, not source.
+audit/*.jsonl
+
+.claude/settings.local.json
+
+# OCA modules fetched by docker/fetch-addons.sh — not vendored
+docker/addons/

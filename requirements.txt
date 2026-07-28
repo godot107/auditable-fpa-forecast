@@ -1,0 +1,31 @@
+# --- Core data -------------------------------------------------------------
+pandas>=2.2            # ledger frames; 2.2+ for the non-deprecated ffill/bfill API
+numpy>=1.26
+pyarrow>=16.0          # parquet engine for the pinned-vintage cache
+duckdb>=1.0            # SQL over the materialized extract without a server
+
+# --- Ingest ----------------------------------------------------------------
+httpx>=0.27            # SEC EDGAR XBRL client (needs a descriptive User-Agent)
+python-dotenv>=1.0     # .env loading in fpa/config.py
+
+# --- Forecasting -----------------------------------------------------------
+statsmodels>=0.14      # seasonal-naive baseline + classical benchmarks
+
+# --- UI --------------------------------------------------------------------
+streamlit>=1.37
+plotly>=5.22
+
+# --- Tests -----------------------------------------------------------------
+pytest>=8.0
+
+# NOTE: numpyro/jax are deliberately NOT here. The Bayesian interval layer
+# (fpa/forecast/bayes.py) lazy-imports them so the pipeline and the whole test
+# suite run without the heavy stack; install with `pip install -r
+# requirements-bayes.txt` when you want posterior-predictive intervals.
+#
+# torch and pyro-ppl were removed outright: the previous scaffold imported them
+# to run a sampling loop that did no inference. NumPyro/JAX is the house choice
+# (see financial-forecasting-engine) and drops ~2 GB of unused dependency.
+#
+# yfinance and pandas-datareader were removed: actuals now come from SEC EDGAR
+# XBRL, where every fact carries the accession number of the filing it came from.

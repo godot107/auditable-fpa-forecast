@@ -1,0 +1,56 @@
+# Odoo as the ERP system of record, plus the OCA modules that give it the
+# reporting half of EPM.
+#
+# Odoo is the *system of record* here, not the planning engine. The planning
+# layer (budget, forecast, variance) lives in Python under fpa/ — which is the
+# real enterprise pattern, ERP feeding EPM, rather than a workaround.
+#
+# Image tag is dated rather than floating (`18.0-20260723`, not `18`) so the
+# environment is reproducible — the same vintage-pinning discipline applied to
+# the data.
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo
+      POSTGRES_DB: postgres
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    ports:
+      # Exposed so fpa/extract/odoo_sql.py can run the SQL extract directly
+      # against Odoo's schema. Analytics does not query through the ERP's ORM.
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  odoo:
+    # Built rather than pulled: mis_builder needs the openupgradelib Python
+    # package, and Odoo refuses to install a module with missing external deps.
+    # See ./Dockerfile — it is four lines on top of the pinned official image.
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fpa-odoo:18.0
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8069:8069"
+    environment:
+      HOST: db
+      USER: odoo
+      PASSWORD: odoo
+    volumes:
+      - odoo-data:/var/lib/odoo
+      - ./odoo.conf:/etc/odoo/odoo.conf:ro
+      # Populated by ./fetch-addons.sh — git-ignored, not vendored into this repo.
+      - ./addons:/mnt/extra-addons:ro
+
+volumes:
+  pg-data:
+  odoo-data:

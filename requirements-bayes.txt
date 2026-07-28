@@ -1,0 +1,6 @@
+-r requirements.txt
+
+# Optional: posterior-predictive intervals (fpa/forecast/bayes.py).
+# Lazy-imported, so everything else runs without these installed.
+numpyro>=0.15
+jax>=0.4.30
