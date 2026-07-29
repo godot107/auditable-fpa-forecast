@@ -36,6 +36,9 @@ from fpa.config import (
     get_settings,
 )
 from fpa.ingest.edgar import filing_url
+# Re-exported so the CLI below and any existing caller keep working, while the app
+# imports the reader from the thin module that has no Odoo dependency at all.
+from fpa.ledger.proof import load_proof, proof_path  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -547,26 +550,6 @@ def seed_journal_entries(
         logger.info("posted %d journal entries", len(draft_ids))
 
     return created
-
-
-def proof_path(settings: Settings):
-    """Where the recorded refusal lives.
-
-    JSON rather than Parquet on purpose: it is one small record whose value is that a
-    human can read it and a diff can show it changing. An audit artifact that needs a
-    library to open is a worse audit artifact.
-    """
-    return settings.data_dir / f"erp_balance_proof.{settings.data_vintage}.json"
-
-
-def load_proof(settings: Settings) -> dict | None:
-    """Read the recorded refusal, or ``None`` if it has never been run."""
-    import json
-
-    path = proof_path(settings)
-    if not path.exists():
-        return None
-    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def prove_balance_constraint(

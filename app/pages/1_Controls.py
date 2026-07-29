@@ -6,7 +6,7 @@ import streamlit as st
 
 from _shared import gate_banner, pipeline, setup
 from fpa.kpi.process import control_detail
-from fpa.ledger.odoo_load import load_proof
+from fpa.ledger.proof import load_proof
 
 setup("Controls")
 
