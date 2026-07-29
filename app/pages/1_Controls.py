@@ -163,7 +163,7 @@ if rows:
     st.markdown(
         f"This is why the series starts at **{result.settings.window_start[:4]}** rather "
         "than at the earliest available filing: FY2017–FY2019 do not articulate against "
-        "this chart of accounts (off by −$27.3M, +$3.8M and −$127.9M), and FY2020 onward "
+        "this chart of accounts (off by −\\$27.3M, +\\$3.8M and −\\$127.9M), and FY2020 onward "
         "tie to the dollar. The boundary is re-proved every run by "
         "`annual_identity_in_window` rather than asserted in a comment."
     )

@@ -134,10 +134,10 @@ with st.expander("Filed disclosure tags — reported, never posted"):
     st.caption(
         "The lease tags are ASC 842 *disclosures* nested **inside** the "
         "'other non-current' captions, not siblings of them. Posting them alongside "
-        "double-counts, which showed up as a non-current liability of **−$571M** — a "
+        "double-counts, which showed up as a non-current liability of **−\\$571M** — a "
         "negative liability, and the only reason the error was visible at all. "
         "Settled by the adoption step in 2019-Q1: `OtherAssetsNoncurrent` jumped "
-        "$816M in the quarter $812M of right-of-use assets were first recognised. A "
+        "\\$816M in the quarter \\$812M of right-of-use assets were first recognised. A "
         "caption that jumps by the amount of the thing being adopted contains it."
     )
     disclosed = [c for c in bs.columns if c.endswith("_disclosed")]
@@ -221,7 +221,7 @@ for per_share in ("eps_basic", "eps_diluted"):
 display.index = display.index.strftime("%Y-%m-%d")
 st.dataframe(display.T, width="stretch")
 st.caption(
-    "$M, except EPS ($/share). `gross_profit` is computed rather than read — Netflix "
+    "\\$M, except EPS (\\$/share). `gross_profit` is computed rather than read — Netflix "
     "stopped tagging `GrossProfit` after 2020-12-31, and Revenue − CostOfRevenue is "
     "its definition. `non_operating` is the residual between operating and pre-tax "
     "income, which is the only route to a complete bridge since `InterestExpense` was "
