@@ -1,5 +1,20 @@
 # Auditable FP&A Rolling Forecast
 
+> A driver-based FP&A rolling forecast built on real SEC filings — where every actual
+> traces to the accession number of the document it was tagged in, integrity controls
+> block the pipeline rather than warn in a log, and an LLM writes the commentary but is
+> structurally incapable of producing a number.
+
+<p align="left">
+  <img alt="Python"    src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white">
+  <img alt="Streamlit" src="https://img.shields.io/badge/Streamlit-UI-FF4B4B?logo=streamlit&logoColor=white">
+  <img alt="Odoo"      src="https://img.shields.io/badge/Odoo-18.0-714B67?logo=odoo&logoColor=white">
+  <img alt="NumPyro"   src="https://img.shields.io/badge/NumPyro-NUTS-EE4C2C">
+  <img alt="Controls"  src="https://img.shields.io/badge/controls-23_(21_blocking)-2e7d32">
+  <img alt="Tests"     src="https://img.shields.io/badge/tests-105-2e7d32">
+  <img alt="License"   src="https://img.shields.io/badge/license-MIT-blue">
+</p>
+
 A driver-based FP&A forecasting pipeline where **every actual traces to the SEC filing it
 came from**, a blocking controls layer gates the pipeline, and the forecast is measured
 against a naive benchmark rather than presented on its own.
@@ -549,16 +564,26 @@ done nothing.
 
 ---
 
-### Hosted deploy
+### Deploy it (Streamlit Community Cloud)
 
-The app is deployable to Streamlit Community Cloud as-is: entrypoint `app/Home.py`,
-`requirements.txt` at the repo root, no secrets required.
+The repo is deploy-ready: the pinned vintage ships in `data/` (92 KB of Parquet), nothing
+imports outside the repository, and `requirements.txt` deliberately excludes NumPyro/JAX so
+it installs on a free CPU host.
+
+1. Go to **[share.streamlit.io](https://share.streamlit.io)** and sign in with GitHub.
+2. **Create app → Deploy a public app from GitHub**, then set:
+   - **Repository:** `godot107/auditable-fpa-forecast`
+   - **Branch:** `master`
+   - **Main file path:** `app/Home.py`
+3. Click **Deploy**. No secrets are required — `EDGAR_USER_AGENT` has a default and is only
+   read on `--refresh`, which the hosted app never calls.
 
 It works hosted for the same reason it works with the containers stopped — **the app reads
 the materialized extract, never live Odoo.** The committed vintage carries the ERP round-trip
-tables alongside the EDGAR facts, so all 23 controls run and report *verified* rather than
-*skipped* on a host that has never seen a database. That is not a demo shortcut; it is how
-FP&A reporting actually works, and it is why the ERP being a stand-in costs nothing.
+tables alongside the EDGAR facts, so a host that has never seen a database still runs all 23
+controls and reports **21 verified, 0 skipped** — the same as a local run with Odoo up. That
+is not a demo shortcut; it is how FP&A reporting actually works, and it is why the ERP being
+a stand-in costs nothing.
 
 Two things degrade by design rather than break:
 
