@@ -488,14 +488,48 @@ docker compose -f docker/docker-compose.yml run --rm odoo \
     --without-demo=all --stop-after-init
 docker compose -f docker/docker-compose.yml up -d odoo
 
-.venv/bin/python -m fpa.ledger.odoo_load                    # seed; idempotent
-.venv/bin/python -m fpa.ledger.odoo_load --reset            # after a chart-of-accounts change
+# Seed: chart of accounts, journals, balance sheet, budgets
+.venv/bin/python -m fpa.ledger.odoo_load                    # idempotent
 .venv/bin/python -m fpa.ledger.forecast_version             # publish the forecast version
 .venv/bin/python -m fpa.ledger.mis_reports                  # load the MIS report definitions
+
+# Extract back out — REQUIRED, or four blocking controls have nothing to check
+.venv/bin/python -c "
+from fpa.config import get_settings
+from fpa.extract.odoo_sql import (extract_monthly_actuals, extract_trial_balance,
+                                  extract_balance_sheet)
+s = get_settings()
+for fn in (extract_monthly_actuals, extract_trial_balance, extract_balance_sheet):
+    print(fn.__name__, fn(s, refresh=True).shape)"
+
+# Regional segments (~340 MB of SEC archives, cached after the first run)
+.venv/bin/python -c "
+from fpa.config import get_settings
+from fpa.ingest.segments import regional_revenue
+print(regional_revenue(get_settings(), refresh=True).shape)"
 ```
 
 Odoo is then at `localhost:8069` (`admin` / `admin`). The seeder grants its own permission
 groups — Odoo 18 gates analytic accounting and budgetary positions behind feature groups.
+Use `--reset` on `odoo_load` after any chart-of-accounts change: the seeder matches accounts
+by code, so renumbering one leaves historical lines pointing at an account that now means
+something else.
+
+**The extract step is not optional if you want the round-trip proof.** Without it,
+`erp_extract_reconciles`, `erp_balance_sheet_reconciles`, `trial_balance_nets_to_zero` and
+`segment_revenue_foots_to_filed` have no data and **skip**. The pipeline still exits 0,
+because it is designed to run without a live ERP — so the report distinguishes *verified*
+from *skipped* rather than counting a skip as a pass:
+
+```
+## Control report — 17/23 verified, 4 skipped
+
+**4 control(s) did not run:** `erp_extract_reconciles`, … A skip is not a pass.
+```
+
+That distinction exists because the first cold-start rehearsal of this quickstart produced
+"21/23, zero blocking failures" while the four strongest checks in the project had silently
+done nothing.
 
 ---
 

@@ -64,6 +64,18 @@ class CheckResult:
     def blocks(self) -> bool:
         return self.severity is Severity.BLOCKING and not self.passed
 
+    @property
+    def skipped(self) -> bool:
+        """True when the control could not run for want of an input.
+
+        A skip is not a pass, and conflating the two is how a demo ends up
+        reporting "zero blocking failures" while its strongest checks did
+        nothing. Controls that need the ERP extract or the segment snapshot
+        return this rather than failing, because the pipeline is designed to run
+        without them — but the distinction has to survive into the report.
+        """
+        return bool(self.detail.get("skipped"))
+
 
 @dataclass
 class LedgerContext:
@@ -110,6 +122,15 @@ class ControlReport:
         return not self.blocking_failures
 
     @property
+    def skipped(self) -> list[CheckResult]:
+        return [r for r in self.results if r.skipped]
+
+    @property
+    def verified(self) -> list[CheckResult]:
+        """Controls that actually ran and passed."""
+        return [r for r in self.results if r.passed and not r.skipped]
+
+    @property
     def pass_rate(self) -> float:
         """Share of controls that passed — a Layer-4 process KPI in its own right."""
         return sum(r.passed for r in self.results) / len(self.results) if self.results else 1.0
@@ -120,7 +141,7 @@ class ControlReport:
                 {
                     "control": r.name,
                     "severity": r.severity.value,
-                    "status": "PASS" if r.passed else "FAIL",
+                    "status": "SKIP" if r.skipped else ("PASS" if r.passed else "FAIL"),
                     "message": r.message,
                 }
                 for r in self.results
@@ -128,13 +149,22 @@ class ControlReport:
         )
 
     def to_markdown(self) -> str:
-        lines = [
-            f"## Control report — {sum(r.passed for r in self.results)}/{len(self.results)} passed",
-            "",
-        ]
+        headline = f"## Control report — {len(self.verified)}/{len(self.results)} verified"
+        if self.skipped:
+            headline += f", {len(self.skipped)} skipped"
+        lines = [headline, ""]
         for r in self.results:
-            mark = "PASS" if r.passed else "FAIL"
+            mark = "SKIP" if r.skipped else ("PASS" if r.passed else "FAIL")
             lines.append(f"- **[{mark}]** `{r.name}` ({r.severity.value}) — {r.message}")
+
+        if self.skipped:
+            names = ", ".join(f"`{r.name}`" for r in self.skipped)
+            lines += [
+                "",
+                f"**{len(self.skipped)} control(s) did not run:** {names}. A skip is not a "
+                "pass — these need the Odoo extract or the segment snapshot. See the ERP "
+                "section of the README for the steps that produce them.",
+            ]
         if self.blocking_failures:
             lines += ["", "**Pipeline halted: blocking control(s) failed.**"]
         return "\n".join(lines)

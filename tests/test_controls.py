@@ -109,3 +109,31 @@ def test_blocking_and_warn_are_distinguished(result):
 
 def test_pass_rate_is_a_real_fraction(result):
     assert 0.0 <= result.controls.pass_rate <= 1.0
+
+
+def test_a_skipped_control_is_not_counted_as_verified(result):
+    """A control that could not run must be distinguishable from one that passed.
+
+    The ERP and segment controls return ``skipped`` rather than failing, because the
+    pipeline is designed to run without a live Odoo. But a cold-start rehearsal of the
+    documented quickstart reported "21/23, zero blocking failures" while four of the
+    strongest checks in the project had no data and did nothing at all. A skip that
+    reads as a pass is a false assurance, which is worse than a visible gap.
+    """
+    from fpa.controls import CheckResult, ControlReport, Severity
+
+    ran = CheckResult("ran", Severity.BLOCKING, True, "checked something", {})
+    skipped = CheckResult("skipped", Severity.BLOCKING, True, "no input — skipped", {"skipped": True})
+    report = ControlReport([ran, skipped])
+
+    assert not ran.skipped and skipped.skipped
+    assert report.verified == [ran]
+    assert report.skipped == [skipped]
+    # The gate still passes: a skip is not a failure either.
+    assert report.passed
+
+    markdown = report.to_markdown()
+    assert "1/2 verified, 1 skipped" in markdown
+    assert "A skip is not a pass" in markdown
+    assert "**[SKIP]**" in markdown
+    assert set(report.to_frame()["status"]) == {"PASS", "SKIP"}
