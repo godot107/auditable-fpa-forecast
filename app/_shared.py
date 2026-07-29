@@ -70,15 +70,28 @@ def pipeline():
 def gate_banner(result) -> bool:
     """Render the control-gate state. Returns True when downstream output may show."""
     if result.gate_passed:
-        # Verified, not merely passed. A skipped control returns True so the pipeline
-        # can run without a live ERP, so counting passes would report a run with no
-        # data behind four checks identically to a fully exercised one.
-        skipped = len(result.controls.results) - len(result.controls.verified)
-        note = f", {skipped} skipped — a skip is not a pass" if skipped else ""
+        # Verified, not merely passed: a skipped control returns True so the pipeline can
+        # run without a live ERP, and counting passes would report a run with no data
+        # behind four checks identically to a fully exercised one.
+        #
+        # Count skips by asking, never by subtracting. `results - verified` looks
+        # equivalent and is not: a WARN failure is unverified but not skipped, so the
+        # subtraction reported two warnings as skips and printed "2 skipped — a skip is
+        # not a pass" on a run that skipped nothing. Third instance of this codebase's
+        # signature defect — a plausible number where an error belonged.
+        results = result.controls.results
+        skipped = sum(1 for r in results if r.skipped)
+        warned = sum(1 for r in results if not r.passed and not r.skipped)
+
+        parts = [f"{len(result.controls.blocking_failures)} blocking failures"]
+        if warned:
+            parts.append(f"{warned} warning{'s' if warned > 1 else ''}")
+        if skipped:
+            parts.append(f"{skipped} skipped — a skip is not a pass")
+
         st.success(
             f"Control gate **passed** — {len(result.controls.verified)}"
-            f"/{len(result.controls.results)} controls verified, "
-            f"{len(result.controls.blocking_failures)} blocking failures{note}."
+            f"/{len(results)} controls verified, " + ", ".join(parts) + "."
         )
         return True
 

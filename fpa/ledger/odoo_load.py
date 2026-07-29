@@ -23,7 +23,6 @@ attributing a journal line to a department, and it is what ``mis_builder`` and
 from __future__ import annotations
 
 import logging
-import xmlrpc.client
 from dataclasses import dataclass
 
 import pandas as pd
@@ -182,7 +181,16 @@ def allocation_narration(accessions: pd.DataFrame, period: pd.Timestamp, cik: st
 
 @dataclass
 class OdooClient:
-    """Thin XML-RPC wrapper. Odoo's external API is `execute_kw` over `/xmlrpc/2`."""
+    """Thin XML-RPC wrapper. Odoo's external API is `execute_kw` over `/xmlrpc/2`.
+
+    ``xmlrpc.client`` is imported inside the methods that use it, not at module scope.
+    Reading a recorded artifact — :func:`load_proof` — must not depend on the transport
+    that produced it, and this module is imported by the Streamlit app on a host that
+    has no Odoo and never opens a socket. Same rule as the NumPyro imports in
+    ``fpa.forecast.bayes``: the heavy or environment-specific dependency loads when it
+    is used, so importing the module cannot fail for a reason the caller does not care
+    about.
+    """
 
     url: str
     db: str
@@ -191,6 +199,8 @@ class OdooClient:
     uid: int | None = None
 
     def connect(self) -> "OdooClient":
+        import xmlrpc.client
+
         common = xmlrpc.client.ServerProxy(f"{self.url}/xmlrpc/2/common")
         self.uid = common.authenticate(self.db, self.username, self.password, {})
         if not self.uid:
@@ -202,6 +212,8 @@ class OdooClient:
 
     @property
     def models(self):
+        import xmlrpc.client
+
         return xmlrpc.client.ServerProxy(f"{self.url}/xmlrpc/2/object")
 
     def execute(self, model: str, method: str, *args, **kwargs):
