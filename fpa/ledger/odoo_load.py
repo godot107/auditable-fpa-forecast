@@ -28,7 +28,15 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from fpa.config import COST_CENTERS, Settings, balance_sheet_lines, get_settings
+from fpa.config import (
+    COST_CENTERS,
+    DERIVED_BALANCE_SHEET,
+    EXPENSE_ACCOUNTS,
+    Settings,
+    balance_sheet_lines,
+    get_settings,
+)
+from fpa.ingest.edgar import filing_url
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +61,123 @@ REVENUE_ACCOUNT = ("400000", "Streaming Revenue", "income")
 # second set of books. The statutory side is loaded separately, at filed values,
 # by :func:`seed_balance_sheet`.
 CLEARING_ACCOUNT = ("990000", "Cost Allocation Offset", "liability_current")
+
+
+# ---------------------------------------------------------------------------
+# Provenance narration
+# ---------------------------------------------------------------------------
+# The audit trail used to stop at the ERP boundary. Every fact carries the
+# accession number of the filing it was tagged in, but the journal entry carried
+# only ``BS-2026-03-31`` — a period key. Someone opening the entry in Odoo could
+# tell which quarter it belonged to and not which document it came from, so
+# validating a line against EDGAR meant leaving the ledger.
+#
+# ``narration`` is written on the entry instead of ``ref``, because ``ref`` is the
+# idempotency key: the seeders search on it, so changing its format would re-post
+# the entire history rather than skip it.
+#
+# The block also names which lines are filed and which are derived. That knowledge
+# lived only in the README and the Streamlit badges; an auditor opening the entry
+# cold should not have to be told that content assets is a residual.
+
+
+def _quarter_end(period: pd.Timestamp) -> pd.Timestamp:
+    """The filed quarter a modeled month belongs to."""
+    return pd.Timestamp(period).to_period("Q").end_time.normalize()
+
+
+def _sources(
+    accessions: pd.DataFrame, period: pd.Timestamp, accounts: tuple[str, ...]
+) -> list[tuple[str, str, pd.Timestamp]]:
+    """Distinct ``(accn, form, filed)`` behind these accounts at this period end."""
+    rows = accessions[
+        (accessions["end"] == pd.Timestamp(period)) & (accessions["account"].isin(accounts))
+    ]
+    if rows.empty:
+        return []
+    distinct = rows[["accn", "form", "filed"]].drop_duplicates().sort_values("filed")
+    return [(r.accn, r.form, r.filed) for r in distinct.itertuples()]
+
+
+def _source_html(cik: str, sources: list[tuple[str, str, pd.Timestamp]]) -> str:
+    lines = [
+        f'{form} accession <b>{accn}</b>, filed {filed:%Y-%m-%d}<br/>'
+        f'<a href="{filing_url(cik, accn)}">{filing_url(cik, accn)}</a>'
+        for accn, form, filed in sources
+    ]
+    return "<br/>".join(lines)
+
+
+def balance_sheet_narration(
+    accessions: pd.DataFrame, period: pd.Timestamp, cik: str
+) -> str:
+    """Provenance block for one filed-position entry.
+
+    Balance-sheet facts for a given period end come from a single filing — verified
+    across the history, one accession per date — so this is normally one document.
+    It is written as a list anyway: a restatement could split it, and a narration
+    that silently showed the first of two sources would be worse than none.
+    """
+    filed_accounts = tuple(
+        line.account for line, _ in balance_sheet_lines() if line.account not in DERIVED_BALANCE_SHEET
+    )
+    derived = tuple(
+        line.account for line, _ in balance_sheet_lines() if line.account in DERIVED_BALANCE_SHEET
+    )
+    sources = _sources(accessions, period, filed_accounts)
+
+    parts = [f"<p><b>Filed positions — {pd.Timestamp(period):%Y-%m-%d}</b></p>"]
+    if sources:
+        parts.append(f"<p>{_source_html(cik, sources)}</p>")
+    else:
+        parts.append("<p>No accession on file for this period end.</p>")
+
+    parts.append(
+        f"<p><b>REAL</b> ({len(filed_accounts)} lines) — read directly from an XBRL tag:<br/>"
+        f"{', '.join(sorted(filed_accounts))}</p>"
+    )
+    if derived:
+        parts.append(
+            f"<p><b>IMPLIED</b> ({len(derived)} lines) — not tagged by the filer; derived as a "
+            f"residual of filed totals, sign asserted and magnitude checked on every run:<br/>"
+            f"{', '.join(sorted(derived))}</p>"
+        )
+    parts.append(
+        "<p>Assets = Liabilities + Equity holds at both period ends, so this entry books the "
+        "movement in every account and balances with no clearing line.</p>"
+    )
+    return "".join(parts)
+
+
+def allocation_narration(accessions: pd.DataFrame, period: pd.Timestamp, cik: str) -> str:
+    """Provenance block for one modeled monthly allocation entry.
+
+    The opposite conclusion to the balance sheet, and it has to say so. The amounts
+    roll up to a filed quarterly total, but this month in isolation is not a figure
+    anybody reported: both the intra-quarter phasing and the cost-center split are
+    modeled by this project.
+    """
+    quarter = _quarter_end(period)
+    sources = _sources(accessions, quarter, EXPENSE_ACCOUNTS)
+
+    parts = [
+        f"<p><b>MODELED allocation — {pd.Timestamp(period):%Y-%m}</b></p>",
+        f"<p>Derived from the income statement for the quarter ending "
+        f"{quarter:%Y-%m-%d}:</p>",
+    ]
+    parts.append(
+        f"<p>{_source_html(cik, sources)}</p>"
+        if sources
+        else "<p>No accession on file for that quarter.</p>"
+    )
+    parts.append(
+        "<p><b>This month is not a filed figure.</b> The filer reports quarterly, and "
+        "publishes no cost-center breakdown at all. Two layers are modeled here: the "
+        "intra-quarter monthly phasing, and the split across cost centers. Only the sum of "
+        "the three months in the quarter ties to the filing — enforced at 1e-12 relative by "
+        "the <code>ledger_foots_to_filed</code> control on every run.</p>"
+    )
+    return "".join(parts)
 
 
 @dataclass
@@ -318,6 +443,32 @@ def _entry_lines(
     return lines
 
 
+def _existing_move(client: OdooClient, ref: str) -> dict | None:
+    found = client.execute(
+        "account.move", "search_read", [("ref", "=", ref)], ["narration"], limit=1
+    )
+    return found[0] if found else None
+
+
+def _backfill_narration(client: OdooClient, move: dict, narration: str) -> bool:
+    """Write provenance onto an already-seeded entry that has none.
+
+    Without this, provenance would only reach entries created after this change and
+    an existing database would need ``--reset`` — re-posting ~100 entries to add a
+    comment. ``narration`` is not an accounting field, so Odoo permits the write on a
+    posted move; if a version disagrees the entry keeps its numbers and loses only
+    the note, which is why this warns rather than raises.
+    """
+    if not narration or str(move.get("narration") or "").strip():
+        return False
+    try:
+        client.execute("account.move", "write", [move["id"]], {"narration": narration})
+    except Exception as exc:  # noqa: BLE001 - a missing note must not fail a seed run
+        logger.warning("could not backfill narration on move %s: %s", move["id"], exc)
+        return False
+    return True
+
+
 def seed_journal_entries(
     client: OdooClient,
     ledger: pd.DataFrame,
@@ -325,6 +476,8 @@ def seed_journal_entries(
     center_ids: dict[tuple[str, str], int],
     journal_id: int,
     revenue: pd.DataFrame | None = None,
+    accessions: pd.DataFrame | None = None,
+    cik: str = "",
 ) -> int:
     """Post one journal entry per month: revenue plus a line per cost center."""
     by_month = (
@@ -332,13 +485,19 @@ def seed_journal_entries(
     )
 
     created = 0
+    backfilled = 0
     new_ids: list[int] = []
     for period, month_rows in ledger.groupby("period"):
         date = pd.Timestamp(period).date().isoformat()
         ref = f"FPA-{pd.Timestamp(period):%Y-%m}"
+        narration = (
+            allocation_narration(accessions, period, cik) if accessions is not None else ""
+        )
 
-        if client.execute("account.move", "search", [("ref", "=", ref)], limit=1):
-            continue  # idempotent: already seeded
+        existing = _existing_move(client, ref)
+        if existing:  # idempotent: already seeded
+            backfilled += _backfill_narration(client, existing, narration)
+            continue
 
         new_ids.append(
             client.execute(
@@ -348,6 +507,7 @@ def seed_journal_entries(
                     "move_type": "entry",
                     "date": date,
                     "ref": ref,
+                    "narration": narration,
                     "journal_id": journal_id,
                     "line_ids": _entry_lines(
                         month_rows,
@@ -360,6 +520,8 @@ def seed_journal_entries(
         )
         created += 1
     logger.info("created %d journal entries", created)
+    if backfilled:
+        logger.info("backfilled provenance on %d existing journal entries", backfilled)
 
     # Post them. A draft entry is not in the books, and — the reason this matters
     # here — Odoo only generates `account.analytic.line` records on posting. Those
@@ -380,6 +542,8 @@ def seed_balance_sheet(
     balance_sheet: pd.DataFrame,
     account_ids: dict[str, int],
     journal_id: int,
+    accessions: pd.DataFrame | None = None,
+    cik: str = "",
 ) -> int:
     """Post the filed balance sheet, one movement entry per quarter.
 
@@ -416,10 +580,17 @@ def seed_balance_sheet(
     movements.iloc[0] = targets.iloc[0]
 
     created = 0
+    backfilled = 0
     for period, row in movements.iterrows():
         ref = f"BS-{pd.Timestamp(period):%Y-%m-%d}"
-        if client.execute("account.move", "search", [("ref", "=", ref)], limit=1):
-            continue  # idempotent
+        narration = (
+            balance_sheet_narration(accessions, period, cik) if accessions is not None else ""
+        )
+
+        existing = _existing_move(client, ref)
+        if existing:  # idempotent
+            backfilled += _backfill_narration(client, existing, narration)
+            continue
 
         entry_lines = []
         for line, _sign in lines:
@@ -452,12 +623,15 @@ def seed_balance_sheet(
             "move_type": "entry",
             "date": pd.Timestamp(period).date().isoformat(),
             "ref": ref,
+            "narration": narration,
             "journal_id": journal_id,
             "line_ids": entry_lines,
         })
         created += 1
 
     logger.info("created %d balance-sheet entries", created)
+    if backfilled:
+        logger.info("backfilled provenance on %d existing balance-sheet entries", backfilled)
 
     draft_ids = client.execute(
         "account.move", "search", [("ref", "like", "BS-"), ("state", "=", "draft")]
@@ -622,6 +796,7 @@ def seed_budgets(
 
 def main(settings: Settings | None = None, *, reset: bool = False) -> int:
     """Seed a running Odoo instance from the pipeline's statements and budget."""
+    from fpa.ingest.edgar import accession_index
     from fpa.ledger.budget import build_budget
     from fpa.pipeline import build_ledger
 
@@ -660,11 +835,29 @@ def main(settings: Settings | None = None, *, reset: bool = False) -> int:
     context = build_ledger(settings)
     account_ids = ensure_accounts(client, company_id)
     center_ids = ensure_cost_centers(client)
+    # The audit trail crosses into the ERP here: every entry gets the accession
+    # number, form, filing date and EDGAR URL of the document behind it, plus a
+    # statement of which of its lines are filed and which are derived.
+    accessions = accession_index(settings)
 
     entries = seed_journal_entries(
-        client, context.ledger, account_ids, center_ids, journal_id, context.revenue
+        client,
+        context.ledger,
+        account_ids,
+        center_ids,
+        journal_id,
+        context.revenue,
+        accessions=accessions,
+        cik=settings.cik,
     )
-    bs_entries = seed_balance_sheet(client, context.balance_sheet, account_ids, bs_journal_id)
+    bs_entries = seed_balance_sheet(
+        client,
+        context.balance_sheet,
+        account_ids,
+        bs_journal_id,
+        accessions=accessions,
+        cik=settings.cik,
+    )
     # Untrimmed: the ERP holds the plan as committed, all twelve months, so the
     # rolling forecast has something to be compared against in the months that
     # have not happened yet. ``context.budget`` is trimmed for variance reporting.

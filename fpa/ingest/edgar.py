@@ -382,6 +382,24 @@ def quarterly_actuals(settings: Settings, *, refresh: bool = False) -> pd.DataFr
     return quarterly
 
 
+def filing_url(cik: str | int, accn: str) -> str:
+    """Canonical EDGAR index page for one accession number.
+
+    ``https://www.sec.gov/Archives/edgar/data/{cik}/{accn_nodashes}/{accn}-index.htm``
+
+    The CIK is unpadded in the path even though ``companyfacts`` returns it zero-padded
+    to ten digits, so it is coerced through ``int``. The accession number appears twice
+    and in two different forms — directory without dashes, filename with them — which is
+    the sort of thing that is easier to get wrong once than to notice later, hence a
+    function and a test rather than an f-string at each call site.
+    """
+    accn = accn.strip()
+    return (
+        f"https://www.sec.gov/Archives/edgar/data/{int(cik)}/"
+        f"{accn.replace('-', '')}/{accn}-index.htm"
+    )
+
+
 def accession_index(settings: Settings, *, refresh: bool = False) -> pd.DataFrame:
     """Map each (account, period) to the filing it came from — the on-screen audit trail."""
     facts = load_facts(settings, refresh=refresh)

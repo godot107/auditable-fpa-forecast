@@ -11,7 +11,7 @@
   <img alt="Odoo"      src="https://img.shields.io/badge/Odoo-18.0-714B67?logo=odoo&logoColor=white">
   <img alt="NumPyro"   src="https://img.shields.io/badge/NumPyro-NUTS-EE4C2C">
   <img alt="Controls"  src="https://img.shields.io/badge/controls-23_(21_blocking)-2e7d32">
-  <img alt="Tests"     src="https://img.shields.io/badge/tests-105-2e7d32">
+  <img alt="Tests"     src="https://img.shields.io/badge/tests-120-2e7d32">
   <img alt="License"   src="https://img.shields.io/badge/license-MIT-blue">
 </p>
 
@@ -49,7 +49,7 @@ SEC EDGAR XBRL ──> three statements ──> disaggregation ──> Odoo (pos
 | Forecast vs seasonal-naive | MASE **0.936** on filed quarters — beats it by 6%, loses on 4 series |
 | Interval calibration | **provisional** — 8 of 9 backtest fits do not converge; see below |
 | Groundedness checker | **0% false acceptance, 100% parse coverage** over 364 cases |
-| Controls / tests | **23 controls** (21 blocking), **105 tests** |
+| Controls / tests | **23 controls** (21 blocking), **120 tests** |
 
 **Status:** built and verified end to end. `python -m fpa` exits 0 with 21/23 controls passing
 and zero blocking failures; the two open items are `WARN` and structural.
@@ -94,7 +94,7 @@ constraint rather than around the model:
 | Budget-vs-actual variance bridge (spend / mix decomposition) | Built |
 | Grounded LLM commentary, human-in-the-loop, append-only audit log | Built |
 | Measured checker error rates — false acceptance, false rejection, parse coverage | Built |
-| Test suite (105 tests) | Built |
+| Test suite (120 tests) | Built |
 | Bayesian posterior-predictive intervals (NumPyro), scored on coverage **and** sharpness | Built (opt-in) |
 
 ---
@@ -280,7 +280,7 @@ Without those, "0% false acceptance" is indistinguishable from an instrument tha
 that needs ~50 real drafts adjudicated by hand — a model writing "roughly six hundred
 million" in words would defeat every regex here, and nothing in this corpus would notice.
 
-**A test suite that only passes proves nothing.** A dozen of the 105 tests deliberately corrupt
+**A test suite that only passes proves nothing.** A dozen of the 120 tests deliberately corrupt
 the data and assert the control catches it — an unbalanced balance sheet, a double-counted
 line, a negative content-asset balance, a broken cash roll-forward, a share count misread as
 dollars, a double-counted region, a forecast split that no longer ties. One asserts pinball
@@ -337,6 +337,47 @@ entry outright if it did not balance, which makes the ERP an independent check o
 rather than just a destination for it. Treasury stock falls out correctly with no special
 case: its filed value is negative and its natural side is credit, so it lands as a debit
 balance, which is exactly what contra-equity is.
+
+### The audit trail crosses into the ERP
+
+Every fact carries the accession number of the filing it was tagged in — but the journal
+entry used to carry only `BS-2026-03-31`, a period key. Someone opening the entry in Odoo
+could tell which quarter it belonged to and not which document it came from, so validating a
+figure against EDGAR meant leaving the ledger. Each entry now carries a provenance block:
+
+```
+Filed positions — 2026-03-31
+10-Q accession 0001065280-26-000138, filed 2026-04-17
+https://www.sec.gov/Archives/edgar/data/1065280/000106528026000138/0001065280-26-000138-index.htm
+
+REAL (12 lines) — read directly from an XBRL tag:
+  accounts_payable, accrued_liabilities, aoci, cash, common_stock, deferred_revenue,
+  long_term_debt, other_assets_noncurrent, other_liabilities_noncurrent, ppe_net,
+  retained_earnings, short_term_investments
+
+IMPLIED (5 lines) — not tagged by the filer; derived as a residual of filed totals,
+sign asserted and magnitude checked on every run:
+  content_assets, content_liabilities_current, content_liabilities_noncurrent,
+  other_current_assets, treasury_stock
+```
+
+It goes in `narration`, not `ref`, because `ref` is the idempotency key — changing its
+format would re-post the entire history rather than skip it. Existing entries are
+backfilled in place.
+
+**The allocation journal gets the opposite block, and that is the point.** It names the same
+filing and then denies being it: *"This month is not a filed figure. The filer reports
+quarterly, and publishes no cost-center breakdown at all."* A note that cites a 10-Q without
+saying so would imply the month came from it. The provenance badges now live inside the
+ledger, not only in the Streamlit layer.
+
+**One filing per balance sheet holds only inside the posted window.** All 26 quarter ends
+from 2020 trace to a single accession, which is what makes a one-document citation honest.
+Before the window, 33 dates draw on up to **three**: `cash` at 2013-03-31 was last restated
+in a 10-Q filed July 2014 while its neighbours still come from the original April 2013
+filing. A balance sheet *as of* a date is not a balance sheet *as filed in one document*.
+The formatter takes a list for that reason, and the test uses the pre-window scatter as its
+fixture rather than a mock.
 
 ### The scenario dimension — what an EPM tool adds over an ERP
 
@@ -489,7 +530,7 @@ python -m venv .venv && .venv/bin/pip install -r requirements.txt
 cp .env.example .env          # set EDGAR_USER_AGENT to "Your Name your@email"
 
 .venv/bin/python -m fpa       # ingest -> controls -> forecast; prints the control report
-.venv/bin/python -m pytest    # 105 tests
+.venv/bin/python -m pytest    # 120 tests
 .venv/bin/streamlit run app/Home.py
 ```
 
@@ -621,7 +662,7 @@ app/                 Streamlit: Overview, Controls, Forecast, Variance, Commenta
 sql/                 Extract queries as first-class artifacts
 reports/             Generated calibration report (--intervals)
 docker/              Odoo 18 + Postgres, OCA addons, fetch script
-tests/               105 tests, including tests that validate the validators
+tests/               120 tests, including tests that validate the validators
 data/                Pinned Parquet vintages (git-ignored, reproducible)
 ```
 

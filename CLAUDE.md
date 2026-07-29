@@ -18,7 +18,7 @@ cp .env.example .env                     # set EDGAR_USER_AGENT
 
 .venv/bin/python -m fpa                  # ingest -> controls -> forecast
 .venv/bin/python -m fpa --refresh        # re-pull EDGAR instead of the pinned vintage
-.venv/bin/python -m pytest               # 105 tests (pytest.ini scopes to tests/)
+.venv/bin/python -m pytest               # 120 tests (pytest.ini scopes to tests/)
 .venv/bin/pip install -r requirements-bayes.txt   # optional: NumPyro + JAX
 .venv/bin/python -m fpa --groundedness   # + checker error rates (fast; exits 1 if unclean)
 .venv/bin/python -m fpa --intervals      # + posterior-predictive calibration (~30 min)
@@ -140,6 +140,26 @@ docker compose -f docker/docker-compose.yml up -d
   across all 26 quarters, so a quarterly movement entry balances on its own — the debits
   and credits *are* the filed statement. Odoo rejects the entry if it does not balance,
   which makes the ERP an independent check on the ingest rather than just a destination.
+- **The audit trail crosses into the ERP, in `narration` rather than `ref`.** Every
+  entry carries the accession number, form, filing date and EDGAR index URL of the
+  document behind it, plus a statement of which of its lines are filed and which are
+  derived. Previously the trail stopped at the ERP boundary: the entry said
+  `BS-2026-03-31`, a period key, so validating a figure against EDGAR meant leaving
+  the ledger. It goes in `narration` because `ref` is the idempotency key — changing
+  its format would re-post the whole history instead of skipping it — and existing
+  entries are backfilled rather than requiring `--reset`.
+- **The two journals' provenance blocks reach opposite conclusions, deliberately.**
+  The balance-sheet block names the filing and separates the 12 `REAL` lines from the
+  5 `IMPLIED` residuals. The allocation block names the same filing and then *denies
+  being it*: "this month is not a filed figure." A note that cites a 10-Q without
+  saying that implies the month came from it.
+- **One accession per balance-sheet date holds only inside the window.** All 26
+  quarter ends from 2020 trace to a single filing, which is what makes a one-document
+  citation honest. Before the window, 33 dates draw on up to **three** — `cash` at
+  2013-03-31 was last restated in a 10-Q filed July 2014 while its neighbours still
+  come from the original April 2013 filing. A balance sheet *as of* a date is not a
+  balance sheet *as filed in one document*. The formatter takes a list for that
+  reason, and a test uses the pre-window scatter as its fixture.
 - **The cash-flow statement is deliberately not posted.** No general ledger journalizes
   one; it is derived from the movement in balance-sheet accounts. Computing it in Python
   and reconciling it is the correct division of labour, not a shortcut.
