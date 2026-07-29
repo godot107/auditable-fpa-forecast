@@ -157,6 +157,14 @@ docker compose -f docker/docker-compose.yml up -d
   Actual / Plan / Forecast against the same accounts, and `crossovered.budget` is a
   versioned container, so the Python forecast loads as `FY2026 Forecast` beside
   `FY2026 Plan`. Actual is not loaded at all: Odoo derives it from the analytic lines.
+- **Scenarios propagate assumptions; they do not estimate responses.** Volume × rate lets a
+  driver assumption be changed and re-footed through the hierarchy — *"if content spend
+  grows 15%, what happens to margin?"* Netflix filed **one** price path, so nothing in this
+  data identifies how members respond to a price change; *"what happens when we decide to
+  raise price?"* needs a counterfactual the filings do not contain. The README claimed
+  churn/elasticity what-ifs the code never implemented — corrected, and the honest version
+  is on the roadmap. Same rule as the vendor-feed decision: a number nobody can trace to a
+  source is worse than an absent one.
 - **The plan published to the ERP is untrimmed; the plan used for variance is not.**
   `build_budget(trim_to_actuals=...)`. Variance must drop plan months with no actual, or
   a month that has not happened reports as 100% under budget. The ERP must keep all

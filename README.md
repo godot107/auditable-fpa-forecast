@@ -437,15 +437,29 @@ mathematically constrained to sum back to the authentic filed totals:
    revenue exactly.
 4. **Odoo journal entries** — the ERP postings built from layers 1–2.
 
-**Why this matters for scenario planning.** Because revenue is decomposed into *volume*
-(members) × *rate* (ARPU), the architecture supports genuine what-if analysis:
+### What this does and does not support for scenario planning
 
-- What if the standard tier price rises $2 — how does the resulting churn move ARPU versus
-  total revenue?
-- Best and worst case if the ad-supported tier grows 20% faster than premium next quarter?
-- If cloud costs spike, how much member growth offsets the margin compression?
+Because revenue is decomposed into *volume* (members) × *rate* (ARPU), a driver assumption can
+be changed and propagated: raise the content-spend growth rate, re-run the bottom-up forecast,
+and the leaves re-foot to a new total with operating margin falling out of it. That is
+**assumption propagation**, and it is what an FP&A scenario actually is.
 
-These levers move the forecast without touching the SEC-filed historical baseline.
+It is **not causal**, and the distinction is not cosmetic. Netflix filed one price path, so
+there is no variation in this data that identifies how members respond to a price change. A
+tool that answers *"the standard tier rises $2 — how much churn?"* is not reading an elasticity
+out of the filings; it is asserting a coefficient somebody chose. This pipeline declines to do
+that, on the same grounds it declines to fill an EDGAR gap with a vendor figure.
+
+So:
+
+| Question | Supported | Why |
+|---|---|---|
+| "If content spend grows 15% instead of 8%, what happens to margin?" | **Yes** | Arithmetic on a stated assumption, badged as one; the hierarchy re-foots by construction. |
+| "What happens *when we decide* to grow it 15%?" | **No** | Needs a counterfactual — a second, unobserved price/spend path. One realised history does not contain one. |
+
+**Not built.** The scenario *dimension* exists in the ERP: `crossovered.budget` already holds
+`FY2026 Plan` and `FY2026 Forecast` against the same accounts, and a driver override would load
+as a third version beside them. The override module itself is not written — see the roadmap.
 
 ---
 
@@ -680,7 +694,11 @@ sheet posted as self-balancing movement entries, nine new articulation controls)
 published to Odoo as a second budget version; MIS Builder report definitions committed as data;
 regional revenue ingested from the Financial Statement Data Sets.
 
-**Next.** An independent reconciliation source (below). The build set is complete.
+**Next.** A driver-override scenario version. Change a growth assumption, propagate it through
+the bottom-up hierarchy so the leaves still foot, and load the result into `crossovered.budget`
+as a third version beside Plan and Forecast. Deliberately scoped to *assumption propagation* —
+the causal version needs an elasticity that one realised price path cannot identify, and
+inventing one would undo the provenance discipline the rest of the pipeline is built on.
 
 **Also open.** An independent reconciliation source: pulling the same income statement from a
 vendor feed and reporting disagreements as a control finding. Deliberately *not* used to
@@ -742,3 +760,9 @@ segments are management judgements rather than measured facts, and they are not 
 between filers. Netflix reports revenue by region and does not report cost by region, so
 region and the modeled cost-center hierarchy are kept as separate dimensions that are never
 crossed. Anything else would be inventing a regional cost base and labelling it filed.
+
+---
+
+## License
+
+MIT — see [`LICENSE`](LICENSE).
