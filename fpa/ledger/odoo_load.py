@@ -537,6 +537,26 @@ def seed_journal_entries(
     return created
 
 
+def proof_path(settings: Settings):
+    """Where the recorded refusal lives.
+
+    JSON rather than Parquet on purpose: it is one small record whose value is that a
+    human can read it and a diff can show it changing. An audit artifact that needs a
+    library to open is a worse audit artifact.
+    """
+    return settings.data_dir / f"erp_balance_proof.{settings.data_vintage}.json"
+
+
+def load_proof(settings: Settings) -> dict | None:
+    """Read the recorded refusal, or ``None`` if it has never been run."""
+    import json
+
+    path = proof_path(settings)
+    if not path.exists():
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def prove_balance_constraint(
     client: OdooClient,
     balance_sheet: pd.DataFrame,
@@ -603,14 +623,18 @@ def prove_balance_constraint(
     else:
         target["credit"] = round(target["credit"] + perturbation, 2)
 
+    from datetime import datetime, timezone
+
     outcome = {
         "period": str(pd.Timestamp(period).date()),
         "perturbed_line": target["name"],
         "moved_from": round(before, 2),
         "perturbation": perturbation,
+        "lines_in_entry": len(entry_lines),
         "rejected": False,
         "rejected_at": None,
         "error": None,
+        "ran_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
 
     # Odoo refuses at **create**, not at post — measured, not assumed. The unbalanced
@@ -964,6 +988,13 @@ def main(settings: Settings | None = None, *, reset: bool = False, prove: bool =
         if outcome["error"]:
             print(f"  refused at: {outcome['rejected_at']}")
             print(f"  Odoo said: {outcome['error']}")
+        import json
+
+        path = proof_path(settings)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
+        print(f"  recorded: {path.name}")
+
         if not outcome["rejected"]:
             print("\n  An unbalanced entry POSTED. The ERP is not validating the ingest.")
             return 1

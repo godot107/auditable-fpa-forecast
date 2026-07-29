@@ -21,6 +21,8 @@ docker/pg-data/
 data/*
 !data/.gitkeep
 !data/*.parquet
+# The recorded ERP refusal — one small JSON record, readable and diffable.
+!data/*.json
 
 # The SEC Financial Statement Data Set archives stay out — 444 MB of raw ZIPs, and
 # segment_revenue_*.parquet is already derived from them. They are only read on a

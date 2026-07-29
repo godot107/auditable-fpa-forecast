@@ -1,0 +1,11 @@
+{
+  "period": "2026-06-30",
+  "perturbed_line": "Cash and Cash Equivalents \u2014 movement",
+  "moved_from": -3160540000.0,
+  "perturbation": 1.0,
+  "lines_in_entry": 16,
+  "rejected": true,
+  "rejected_at": "create",
+  "error": "<Fault 2: 'The entry is not balanced.'>",
+  "ran_at": "2026-07-29T04:10:15+00:00"
+}
