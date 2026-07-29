@@ -6,6 +6,7 @@
 > structurally incapable of producing a number.
 
 <p align="left">
+  <a href="https://auditable-fpa-forecastgit-vxpjph3wlgbr89rvakodg5.streamlit.app/"><img alt="Live Demo" src="https://img.shields.io/badge/Live_Demo-Streamlit_Cloud-FF4B4B?logo=streamlit&logoColor=white"></a>
   <img alt="Python"    src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white">
   <img alt="Streamlit" src="https://img.shields.io/badge/Streamlit-UI-FF4B4B?logo=streamlit&logoColor=white">
   <img alt="Odoo"      src="https://img.shields.io/badge/Odoo-18.0-714B67?logo=odoo&logoColor=white">
@@ -638,6 +639,10 @@ That distinction exists because the first cold-start rehearsal of this quickstar
 done nothing.
 
 ---
+
+> **Live demo:** **[Open the app ▶](https://auditable-fpa-forecastgit-vxpjph3wlgbr89rvakodg5.streamlit.app/)**
+> _(free tier — if it has been idle it may take ~30 s to wake, and the first load runs the
+> full pipeline cold)._
 
 ### Deploy it (Streamlit Community Cloud)
 
