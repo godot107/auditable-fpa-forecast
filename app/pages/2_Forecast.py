@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
+import importlib.util
+
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from _shared import badge, gate_banner, pipeline, setup
+from _shared import badge, cost_center_disclaimer, gate_banner, pipeline, setup
 from fpa.forecast.models import leaf_series
+
+# Resolved once, at module scope, so the button below branches on whether the
+# dependency is installed rather than on whether an import statement succeeded.
+_HAS_BAYES = all(importlib.util.find_spec(name) for name in ("numpyro", "jax"))
 
 setup("Forecast")
 
@@ -17,6 +23,8 @@ st.title("Forecast & validation")
 
 if not gate_banner(result):
     st.stop()  # the gate: nothing below is computed when controls fail
+
+cost_center_disclaimer("Everything forecast on this page is a cost center.")
 
 st.caption(
     "Forecasts are produced bottom-up: each leaf cost center is forecast "
@@ -129,26 +137,38 @@ choice = st.selectbox(
     key="bayes_center",
 )
 
-if st.button("Fit posterior (NUTS, ~15s)", key="fit_bayes"):
+# Probe for the dependency, not for the import. `fpa.forecast.bayes` lazy-imports
+# numpyro *inside* fit(), which is what keeps the pipeline and the test suite free of
+# the heavy stack — and it means `from fpa.forecast.bayes import forecast_intervals`
+# succeeds on a host where numpyro is absent. Guarding that import was dead code: the
+# ModuleNotFoundError fired later, at call time, outside the try, and reached the
+# hosted app as a raw traceback.
+#
+# The same shape as the other defects this project keeps finding: a check that passes
+# for a reason unrelated to what it was meant to verify.
+if not _HAS_BAYES:
+    st.info(
+        "**Not available on this host.** NumPyro and JAX are deliberately excluded from "
+        "`requirements.txt` — the pipeline and all 123 tests must run without them, and a "
+        "free hosted deploy has neither the memory nor the CPU budget for a NUTS fit that "
+        "takes minutes on a laptop. Run locally with "
+        "`pip install -r requirements-bayes.txt`, then `python -m fpa --intervals`. The "
+        "measured calibration is in `reports/interval_calibration.md` either way — and it "
+        "is provisional; see the note below."
+    )
+elif st.button("Fit posterior (NUTS — minutes, not seconds)", key="fit_bayes"):
+    from fpa.forecast.bayes import forecast_intervals
+
+    history = leaves[choice].dropna()
     try:
-        from fpa.forecast.bayes import forecast_intervals
-    except ImportError:
-        st.warning(
-            "NumPyro/JAX are not installed here. They are kept out of `requirements.txt` "
-            "on purpose: the whole pipeline and test suite must run without the heavy "
-            "stack, and a hosted deploy has neither the memory nor the CPU budget for a "
-            "NUTS fit. Run locally with `pip install -r requirements-bayes.txt`. The "
-            "measured calibration is in `reports/interval_calibration.md` either way — "
-            "and it is provisional; see the note below."
-        )
-    else:
-        history = leaves[choice].dropna()
-        with st.spinner("Running NUTS…"):
+        with st.spinner("Running NUTS — 4 chains, this takes a few minutes…"):
             st.session_state["intervals"] = (
                 choice,
                 history,
                 forecast_intervals(history, result.settings.horizon_months),
             )
+    except Exception as exc:  # noqa: BLE001 - a failed fit must not traceback at a reader
+        st.error(f"The sampler failed on `{choice[0]} / {choice[1]}`: {exc}")
 
 stored = st.session_state.get("intervals")
 if stored and stored[0] == choice:
@@ -192,8 +212,11 @@ if stored and stored[0] == choice:
         "The band **must** widen with horizon — a fitted straight line would grow like "
         "√h and understate long-horizon risk, which is the reason for an integrated "
         "random walk. Divergent transitions are the sampler reporting where it could not "
-        "explore the posterior; `target_accept_prob` is set to 0.99 to keep them near zero, "
-        "because a divergent fit is a biased fit rather than a rough one."
+        "explore the posterior, and they are **never read alone**: `target_accept_prob` "
+        "sits at 0.90, not the 0.99 an earlier version used. Tuning against divergences "
+        "by itself drives it upward until the step size collapses, at which point nothing "
+        "diverges because nothing moves — measured here at 0.99 as zero divergences with "
+        "R-hat past 1000 and an ESS of 2."
     )
 
 st.info(

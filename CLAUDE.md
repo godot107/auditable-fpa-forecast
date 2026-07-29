@@ -18,7 +18,7 @@ cp .env.example .env                     # set EDGAR_USER_AGENT
 
 .venv/bin/python -m fpa                  # ingest -> controls -> forecast
 .venv/bin/python -m fpa --refresh        # re-pull EDGAR instead of the pinned vintage
-.venv/bin/python -m pytest               # 120 tests (pytest.ini scopes to tests/)
+.venv/bin/python -m pytest               # 123 tests (pytest.ini scopes to tests/)
 .venv/bin/pip install -r requirements-bayes.txt   # optional: NumPyro + JAX
 .venv/bin/python -m fpa --groundedness   # + checker error rates (fast; exits 1 if unclean)
 .venv/bin/python -m fpa --intervals      # + posterior-predictive calibration (~30 min)

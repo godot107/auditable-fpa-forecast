@@ -70,10 +70,15 @@ def pipeline():
 def gate_banner(result) -> bool:
     """Render the control-gate state. Returns True when downstream output may show."""
     if result.gate_passed:
+        # Verified, not merely passed. A skipped control returns True so the pipeline
+        # can run without a live ERP, so counting passes would report a run with no
+        # data behind four checks identically to a fully exercised one.
+        skipped = len(result.controls.results) - len(result.controls.verified)
+        note = f", {skipped} skipped — a skip is not a pass" if skipped else ""
         st.success(
-            f"Control gate **passed** — {sum(r.passed for r in result.controls.results)}"
-            f"/{len(result.controls.results)} controls, "
-            f"{len(result.controls.blocking_failures)} blocking failures."
+            f"Control gate **passed** — {len(result.controls.verified)}"
+            f"/{len(result.controls.results)} controls verified, "
+            f"{len(result.controls.blocking_failures)} blocking failures{note}."
         )
         return True
 
@@ -84,6 +89,33 @@ def gate_banner(result) -> bool:
         "integrity checks should not exist downstream, not even labelled."
     )
     return False
+
+
+def cost_center_disclaimer(where: str = "") -> None:
+    """State plainly that the cost-center hierarchy is invented.
+
+    Shared rather than written per page, because a disclaimer that drifts between
+    surfaces is worse than one that is missing: the reader learns the caveat once and
+    then assumes it applies everywhere it does not appear.
+
+    The distinction this has to carry: the *amounts* are filed and foot to the filing
+    at machine precision, while the *attribution* is fabricated. "Modeled" on its own
+    reads as calibrated-to-something. No filer publishes spend by department, so the
+    nine cost centers below are a plausible org chart and nothing more.
+    """
+    st.warning(
+        f"**The cost centers are invented.**{' ' + where if where else ''} No SEC filer "
+        "discloses spend by department, so the nine cost centers here — and the four "
+        "functions above them — are a plausible streaming-company org chart written by "
+        "this project, not anything Netflix reports.\n\n"
+        "Two layers are modeled: the split of each filed expense line across cost "
+        "centers, and the phasing of each filed quarter across its three months. **A "
+        "single cost-center line in a single month is therefore invented twice over.**\n\n"
+        "What is real is the constraint: the modeled detail sums to the filed quarterly "
+        "total at 1e-12 relative, re-proved by the `ledger_foots_to_filed` control on "
+        "every run. Real at the total, invented at the line — the reverse of what a "
+        "general ledger usually implies."
+    )
 
 
 def money(value: float, unit: str = "M") -> str:

@@ -13,7 +13,7 @@ import shutil
 
 import streamlit as st
 
-from _shared import gate_banner, pipeline, setup
+from _shared import cost_center_disclaimer, gate_banner, pipeline, setup
 from fpa.audit import log_decision, read_log
 from fpa.narrative import from_pipeline, generate_draft, get_provider, to_json
 from fpa.narrative.groundedness import check
@@ -33,6 +33,8 @@ st.caption(
     "before a human sees it. The result is a **draft** — a reviewer approves or rejects, "
     "and the decision is written to an append-only audit log."
 )
+
+cost_center_disclaimer("The variance drivers the model writes about are cost centers.")
 
 report = build_variance_report(
     result.ledger, result.budget, result.revenue, result.revenue_budget,
