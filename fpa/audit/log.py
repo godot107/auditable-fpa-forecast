@@ -41,6 +41,8 @@ def log_decision(
     prompt_version: str,
     grounded: bool,
     note: str | None = None,
+    question: str | None = None,
+    question_id: str | None = None,
 ) -> dict:
     """Append one decision. Returns the entry written."""
     if action not in ACTIONS:
@@ -55,6 +57,11 @@ def log_decision(
         "provider": provider,
         "prompt_version": prompt_version,
         "grounded": bool(grounded),
+        # The question is logged beside the answer so the record is a transcript rather
+        # than a list of approvals. An answer without its question cannot be reviewed:
+        # "approved" says nothing about what was asked.
+        "question_id": question_id,
+        "question": question,
         "draft": draft,
         "note": note,
     }
@@ -67,7 +74,10 @@ def log_decision(
 def read_log(audit_dir: Path) -> pd.DataFrame:
     """Read the log. Returns an empty frame with the right columns if absent."""
     path = Path(audit_dir) / LOG_NAME
-    columns = ["timestamp", "user", "action", "period", "provider", "prompt_version", "grounded"]
+    columns = [
+        "timestamp", "user", "action", "period", "provider", "prompt_version",
+        "grounded", "question_id", "question",
+    ]
     if not path.exists():
         return pd.DataFrame(columns=columns)
 
@@ -76,5 +86,10 @@ def read_log(audit_dir: Path) -> pd.DataFrame:
         return pd.DataFrame(columns=columns)
 
     frame = pd.DataFrame(rows)
+    # Entries written before the question fields existed are still valid records; give
+    # them the columns so a reader never has to special-case the log's own history.
+    for column in ("question_id", "question"):
+        if column not in frame.columns:
+            frame[column] = None
     frame["timestamp"] = pd.to_datetime(frame["timestamp"], format="mixed", utc=True)
     return frame.sort_values("timestamp", ascending=False).reset_index(drop=True)

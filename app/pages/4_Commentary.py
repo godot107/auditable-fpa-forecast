@@ -15,8 +15,11 @@ import streamlit as st
 
 from _shared import cost_center_disclaimer, gate_banner, pipeline, setup
 from fpa.audit import log_decision, read_log
+from fpa.forecast.models import leaf_series
+from fpa.forecast.posterior import load_posterior
 from fpa.narrative import from_pipeline, generate_draft, get_provider, to_json
 from fpa.narrative.groundedness import check
+from fpa.narrative.questions import QUESTIONS, REFUSED, build_answer_facts
 from fpa.variance import build_variance_report
 
 setup("Commentary")
@@ -126,6 +129,101 @@ if draft_result is not None:
         with st.expander("A rejected draft (kept for the audit trail)"):
             st.json(rejected)
 
+# --- CFO question set -----------------------------------------------------
+# The feature most likely to recreate the defect this project removed. The scaffold it
+# replaced shipped an if/elif chatbot asserting a correlation nobody computed. So the
+# shape is inverted: the question set is fixed, each question's facts are computed in
+# Python first, the model only writes prose about that payload, and every numeral is
+# checked back against it before a reviewer sees it.
+st.divider()
+st.subheader("Ask the pipeline — six questions a CFO actually asks")
+st.caption(
+    "Not a chatbot. Each question maps to a Python function that computes its facts; "
+    "the model is handed that payload and may describe it. Every figure in the answer "
+    "is verified against the payload, and the exchange is written to the approval log "
+    "with the question attached — a receipted transcript rather than a chat history."
+)
+
+asked = st.radio(
+    "Question",
+    options=list(QUESTIONS),
+    format_func=lambda q: q.text,
+    key="cfo_question",
+)
+st.caption(f":grey[{asked.rationale}]")
+
+kwargs = {}
+if asked.id == "planning_range":
+    posterior = load_posterior(result.settings)
+    leaves = leaf_series(result.ledger)
+    series = st.selectbox(
+        "Cost centre",
+        options=list(leaves.columns),
+        format_func=lambda c: f"{c[0]} / {c[1]}",
+        key="cfo_series",
+    )
+    kwargs = {"posterior": posterior, "series": series}
+
+answer_facts = build_answer_facts(asked, result, report, **kwargs)
+
+left, right = st.columns([1, 1])
+with left:
+    if st.button("Answer it", type="primary", key="answer_question"):
+        with st.spinner("Writing and checking groundedness…"):
+            st.session_state["answer"] = (
+                asked.id,
+                generate_draft(
+                    answer_facts,
+                    get_provider(provider_name, model=result.settings.narrative_model),
+                ),
+            )
+with right:
+    st.caption(
+        ":grey[The model never sees the ledger — only the payload below, which was "
+        "computed before it was asked anything.]"
+    )
+
+answer = st.session_state.get("answer")
+if answer and answer[0] == asked.id:
+    _, drafted = answer
+    if drafted.publishable:
+        st.success(f"Groundedness check **passed** — {drafted.grounded.message}")
+    else:
+        st.error(f"**Rejected** — {drafted.error or drafted.grounded.message}. Nothing published.")
+
+    if drafted.draft:
+        st.markdown(f"**{drafted.draft.get('headline', '')}**")
+        for item in drafted.draft.get("drivers", []):
+            st.markdown(f"- **{item['cost_center']}** — {item['comment']}")
+
+        reviewer_q = st.text_input("Reviewer", value="cfo", key="cfo_reviewer")
+        if st.button("Log this exchange", key="log_answer"):
+            log_decision(
+                result.settings.audit_dir,
+                user=reviewer_q,
+                action="approved" if drafted.publishable else "rejected",
+                period=str(facts.get("variance", {}).get("period_end", "unknown")),
+                draft=drafted.draft,
+                provider=drafted.provider,
+                prompt_version=drafted.prompt_version,
+                grounded=drafted.publishable,
+                question=asked.text,
+                question_id=asked.id,
+            )
+            st.success("Written to the approval log with the question attached.")
+
+with st.expander("The facts computed for this question — the model sees only this"):
+    st.code(to_json(answer_facts), language="json")
+
+# --- The bounded set ------------------------------------------------------
+st.markdown("##### And one the pipeline refuses")
+st.caption(
+    "Kept beside the answers rather than buried. A system that answers everything asked "
+    "of it cannot be trusted on the ones it happens to get right."
+)
+with st.expander(f"❌  {REFUSED.text}"):
+    st.markdown(REFUSED.refusal)
+
 # --- Prove the check bites ------------------------------------------------
 st.divider()
 st.subheader("Try to get a fabricated number past the check")
@@ -159,6 +257,8 @@ else:
         "most drafts, the drafting is not working — and that should be visible."
     )
     st.dataframe(
-        log[["timestamp", "user", "action", "period", "provider", "grounded"]],
+        # The question travels with the decision. "Approved" on its own says nothing
+        # about what was asked, which makes the log a tally rather than a transcript.
+        log[["timestamp", "user", "action", "question", "provider", "grounded"]],
         width="stretch", hide_index=True,
     )

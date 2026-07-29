@@ -18,8 +18,9 @@ cp .env.example .env                     # set EDGAR_USER_AGENT
 
 .venv/bin/python -m fpa                  # ingest -> controls -> forecast
 .venv/bin/python -m fpa --refresh        # re-pull EDGAR instead of the pinned vintage
-.venv/bin/python -m pytest               # 123 tests (pytest.ini scopes to tests/)
+.venv/bin/python -m pytest               # 140 tests (pytest.ini scopes to tests/)
 .venv/bin/pip install -r requirements-bayes.txt   # optional: NumPyro + JAX
+.venv/bin/python -m fpa.forecast.posterior        # fit + pin the posterior (~1 MB, committed)
 .venv/bin/python -m fpa --groundedness   # + checker error rates (fast; exits 1 if unclean)
 .venv/bin/python -m fpa --intervals      # + posterior-predictive calibration (~30 min)
 .venv/bin/streamlit run app/Home.py
@@ -92,6 +93,30 @@ docker compose -f docker/docker-compose.yml up -d
 - **Two backtests, and the honest one leads.** The monthly ledger is disaggregated by
   this project, so a model scores 0.632 on it and only 0.936 on filed quarters. The gap
   is the artifact, measured rather than assumed.
+- **The posterior is pinned like the data vintage; the app never samples.** Fitting at
+  read time was wrong twice — it cannot run on the hosted deploy (NumPyro and JAX are
+  deliberately out of `requirements.txt`) and locally it took minutes behind a button
+  labelled "~15s". `python -m fpa.forecast.posterior` fits all nine leaves offline and
+  writes `data/posterior_<ticker>.<vintage>.parquet`; the app forward-simulates in
+  NumPy in milliseconds. Only **terminal** level and trend are stored, plus the twelve
+  seasonal offsets and two scales — everything `simulate_from_state` reads. The latent
+  path is discarded, which is the difference between ~1 MB and ~30 MB.
+- **`simulate_from_state` exists so the cache is not a second implementation.** The
+  live path and the stored path run the same loop, and a test asserts they produce
+  identical arrays. Two copies would be free to drift, and then the calibration report
+  would no longer describe what the app draws.
+- **Every stored series carries a digest of the numbers it was fitted to.** Caching
+  model output is the same trap as everything else here: run `--refresh`, the filings
+  move, the draws do not, and the fan looks entirely normal. `stale_series` recomputes
+  the digest from the live ledger on every read and the page **refuses to plot** on a
+  mismatch. The digest covers the period index too — the same values starting a month
+  later imply different seasonal offsets.
+- **The app's dependency guard could not fire.** `2_Forecast.py` wrapped
+  `from fpa.forecast.bayes import forecast_intervals` in `except ImportError`. NumPyro
+  is imported lazily *inside* `fit`, so that import always succeeds and the guard was
+  dead code — the `ModuleNotFoundError` arrived later, at call time, outside the `try`,
+  and reached the public app as a raw traceback. Serving pinned draws removes the
+  failure mode rather than handling it.
 - **The interval layer is opt-in, not on the demo path.** Each fold is a full NUTS
   fit — ~6 minutes against ~10 seconds for everything else, and a demo that takes six
   minutes is a demo nobody runs. `--intervals` writes `reports/interval_calibration.md`.

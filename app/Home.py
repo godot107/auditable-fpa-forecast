@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import numpy as np
+import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -31,25 +33,60 @@ st.divider()
 
 # --- KPI header -----------------------------------------------------------
 pnl = pnl_kpis(result.quarterly)
-latest = pnl.iloc[-1]
-period = pnl.index[-1]
+
+# A period selector rather than a hardcoded tail. Twenty-six quarters of filed data
+# were unreachable from the UI, which is a strange property for a page whose argument
+# is that the history is auditable. Everything below follows the selection — KPIs,
+# drivers, balance sheet, accession — because a page where half the cards move and
+# half stay pinned to the latest quarter is worse than one that never moved at all.
+quarters = list(pnl.index)
+period = st.selectbox(
+    "Filed quarter",
+    options=quarters[::-1],  # newest first, so the default selection is the latest
+    format_func=lambda p: f"FY{p.year} Q{p.quarter} — quarter ending {p:%b %Y}",
+    key="home_period",
+)
+latest = pnl.loc[period]
+is_latest = period == quarters[-1]
 
 accn = result.accessions.query("account == 'revenue' and end == @period")
 accn_note = f"accn {accn['accn'].iloc[0]}" if len(accn) else ""
 
-st.subheader(f"Latest filed quarter — {period:%b %Y}")
+st.subheader(
+    f"Filed quarter — {period:%b %Y}" + ("  (latest)" if is_latest else "")
+)
+# Year over year against the same quarter a year earlier, not the prior quarter.
+# Streaming revenue is seasonal, so a sequential comparison reads as performance when
+# it is calendar.
+prior_year = period - pd.offsets.DateOffset(years=1)
+prior = pnl.loc[prior_year] if prior_year in pnl.index else None
+
+
+def yoy(field: str) -> str:
+    if prior is None or not np.isfinite(prior.get(field, np.nan)) or prior[field] == 0:
+        return "no prior-year quarter filed"
+    return f"{latest[field] / prior[field] - 1:+.1%} YoY"
+
+
 cols = st.columns(4)
 cards = [
-    ("Revenue", money(latest["revenue"], "B"), "REAL", accn_note),
-    ("EBIT", money(latest["ebit"], "B"), "REAL", "tag: OperatingIncomeLoss"),
-    ("EBIT margin", f"{latest['ebit_margin']:.1%}", "REAL", "derived from filed lines"),
-    ("Gross margin", f"{latest['gross_margin']:.1%}", "REAL", "revenue − cost of revenue"),
+    ("Revenue", money(latest["revenue"], "B"), "REAL", f"{yoy('revenue')} · {accn_note}"),
+    ("EBIT", money(latest["ebit"], "B"), "REAL", yoy("ebit")),
+    ("EBIT margin", f"{latest['ebit_margin']:.1%}", "REAL",
+     "—" if prior is None else f"{(latest['ebit_margin'] - prior['ebit_margin']) * 100:+.1f} pts YoY"),
+    ("Gross margin", f"{latest['gross_margin']:.1%}", "REAL",
+     "—" if prior is None else f"{(latest['gross_margin'] - prior['gross_margin']) * 100:+.1f} pts YoY"),
 ]
 for col, (label, value, kind, note) in zip(cols, cards):
     col.markdown(metric_card(label, value, kind, note), unsafe_allow_html=True)
 
 cols = st.columns(4)
-drivers = result.drivers.iloc[-1]
+# Drivers are monthly and carry the quarter they belong to, so they can be matched to
+# the selection exactly rather than by position. They move with the selector; a page
+# where the KPI cards travel and the drivers stay pinned to the latest month would be
+# quietly comparing two different periods.
+driver_rows = result.drivers[result.drivers["quarter_end"] == period]
+drivers = driver_rows.iloc[-1] if len(driver_rows) else result.drivers.iloc[-1]
 process = process_kpis(result.controls, backtest_filed=result.backtest_filed)
 cards = [
     ("Free cash flow", money(latest.get("free_cash_flow", float("nan")), "B"), "REAL", "CFO − capex"),
@@ -116,9 +153,13 @@ controls (blocking) → forecast → variance → narrative → approval
 bs = balance_sheet_kpis(result.quarterly)
 if not bs.empty and "balance_check" in bs:
     st.divider()
-    st.subheader("Balance sheet")
+    st.subheader(f"Balance sheet — {period:%b %Y}")
     cols = st.columns(4)
-    last_bs = bs.dropna(subset=["assets"]).iloc[-1]
+    filed_bs = bs.dropna(subset=["assets"])
+    # Follows the selector; falls back to the latest filed position if the selected
+    # quarter has no balance sheet, rather than showing a blank card.
+    at_period = filed_bs[filed_bs.index <= period]
+    last_bs = at_period.iloc[-1] if len(at_period) else filed_bs.iloc[-1]
     for col, (label, value, kind) in zip(
         cols,
         [

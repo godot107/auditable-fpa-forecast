@@ -285,23 +285,34 @@ def prior_predictive_summary(n_months: int = 78, **kwargs) -> dict[str, float]:
     }
 
 
-def simulate(
-    samples: dict[str, np.ndarray], horizon: int, last_month: int, *, seed: int = 42
+def simulate_from_state(
+    level: np.ndarray,
+    trend: np.ndarray,
+    seasonal: np.ndarray,
+    sigma_trend: np.ndarray,
+    sigma_obs: np.ndarray,
+    horizon: int,
+    last_month: int,
+    *,
+    seed: int = 42,
 ) -> np.ndarray:
-    """Forward-simulate the posterior predictive. Returns ``(draws, horizon)`` in levels.
+    """The forward simulation itself, taking terminal state rather than a fit.
 
-    Each posterior draw continues the random walk from *its own* final level and
-    trend, with *its own* variance parameters. That is what makes the fan carry
-    parameter uncertainty, rather than plotting one fitted path with a fixed error
-    band bolted on — precisely the distinction the deleted scaffold got wrong.
+    Split out so a cached posterior and a live fit run the *same* code. Two copies
+    of this loop would be free to drift, and a stored artifact that disagreed with a
+    fresh fit is precisely the kind of silent divergence this project exists to
+    refuse. ``fpa.forecast.posterior`` calls it with draws read off disk.
+
+    Pure NumPy on purpose: the whole point of caching is that serving an interval
+    needs no JAX.
     """
     rng = np.random.default_rng(seed)
 
-    level = samples["level"][:, -1].copy()
-    trend = samples["trend"][:, -1].copy()
-    seasonal = samples["seasonal"]
-    sigma_trend = samples["sigma_trend"]
-    sigma_obs = samples["sigma_obs"]
+    level = np.asarray(level, dtype=float).copy()
+    trend = np.asarray(trend, dtype=float).copy()
+    seasonal = np.asarray(seasonal, dtype=float)
+    sigma_trend = np.asarray(sigma_trend, dtype=float)
+    sigma_obs = np.asarray(sigma_obs, dtype=float)
 
     draws = level.shape[0]
     out = np.empty((draws, horizon), dtype=float)
@@ -313,6 +324,31 @@ def simulate(
         out[:, step] = level + seasonal[:, month] + sigma_obs * rng.standard_normal(draws)
 
     return np.exp(out)
+
+
+def simulate(
+    samples: dict[str, np.ndarray], horizon: int, last_month: int, *, seed: int = 42
+) -> np.ndarray:
+    """Forward-simulate the posterior predictive. Returns ``(draws, horizon)`` in levels.
+
+    Each posterior draw continues the random walk from *its own* final level and
+    trend, with *its own* variance parameters. That is what makes the fan carry
+    parameter uncertainty, rather than plotting one fitted path with a fixed error
+    band bolted on — precisely the distinction the deleted scaffold got wrong.
+
+    Only the *terminal* level and trend are needed, not the latent path, which is
+    what makes the cached artifact small.
+    """
+    return simulate_from_state(
+        samples["level"][:, -1],
+        samples["trend"][:, -1],
+        samples["seasonal"],
+        samples["sigma_trend"],
+        samples["sigma_obs"],
+        horizon,
+        last_month,
+        seed=seed,
+    )
 
 
 def forecast_intervals(

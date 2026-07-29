@@ -2,18 +2,13 @@
 
 from __future__ import annotations
 
-import importlib.util
-
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
 from _shared import badge, cost_center_disclaimer, gate_banner, pipeline, setup
 from fpa.forecast.models import leaf_series
-
-# Resolved once, at module scope, so the button below branches on whether the
-# dependency is installed rather than on whether an import statement succeeded.
-_HAS_BAYES = all(importlib.util.find_spec(name) for name in ("numpyro", "jax"))
+from fpa.forecast.posterior import load_posterior, posterior_intervals, stale_series
 
 setup("Forecast")
 
@@ -118,16 +113,74 @@ st.dataframe((pivot / 1e6).round(1), width='stretch')
 st.caption("$M. Columns sum to the total forecast above — bottom-up reconciliation.")
 
 # --- Posterior-predictive intervals ---------------------------------------
-# Opt-in behind a button, because each fit is a full NUTS run. The page must stay
-# usable in seconds; nobody clicks through a demo that blocks for minutes.
 st.divider()
 st.subheader("Posterior-predictive interval")
 st.caption(
     "A NumPyro **local linear trend** with monthly seasonality, fitted on the log scale "
     "with NUTS. Every posterior draw continues the random walk from *its own* level, "
     "trend and variances, so the fan carries parameter uncertainty rather than being one "
-    "fitted path with an error band attached."
+    "fitted path with an error band attached. The draws are **pinned like the data "
+    "vintage** — fitted once offline and committed — so this page forward-simulates them "
+    "in NumPy and never runs a sampler."
 )
+
+with st.expander("What the fan actually is — and why it is the honest version of a scenario"):
+    st.markdown(
+        """
+**Start with what it is not.** It is not one forecast with error bars bolted on.
+
+The model has seen 78 months of this cost center. Instead of fitting a single "best"
+line through them, the sampler explores **every combination of starting level, trend and
+seasonal shape that is consistent with what actually happened** — thousands of them.
+Each of those is then run forward twelve months, carrying *its own* trend and *its own*
+volatility. The shaded band is where 80% of those futures land.
+
+So the width is not a confidence dressing. It is the answer to: *given everything this
+line has ever done, how much disagreement is there about where it goes next?*
+
+---
+
+### Why this is a scenario set
+
+FP&A already plans against **downside / base / upside**. Those cases are normally
+*chosen* — "call the downside base minus 10%." It is a round number somebody picked, and
+nobody can say how likely it is.
+
+`p10`, `p50`, `p90` are those same three cases, **measured instead of chosen**:
+
+| Planning case | Here | Meaning |
+|---|---|---|
+| Downside | `p10` | 1 year in 10 comes in below this |
+| Base | `p50` | as likely to be over as under |
+| Upside | `p90` | 1 year in 10 comes in above this |
+
+The downside is not a haircut someone agreed to in a meeting. It is the tenth percentile
+of the futures this cost center's own history supports. **That is the whole value: a
+planning range with a stated probability attached, derived from measured variability
+rather than negotiated.**
+
+And note the band *widens* with horizon. Month 12 is genuinely less knowable than month
+1, and the chart says so. A forecast quoted as a single number hides exactly that.
+
+---
+
+### What it cannot tell you, and this matters
+
+It answers **"what range should I plan against if nothing changes?"**
+
+It does **not** answer **"what happens if we cut content spend 15%?"**
+
+That second question is an *intervention* — a different future, not an uncertain one.
+Answering it needs to know how the business responds to a decision it has never made,
+and nothing in filed data identifies that. This project declines to guess (see the
+scenario note in the README).
+
+> The fan is uncertainty about an **unchanged** future.
+> A what-if is a **different** future.
+
+Reading the first as the second is how a forecast quietly becomes a promise.
+"""
+    )
 
 leaves = leaf_series(result.ledger)
 choice = st.selectbox(
@@ -137,42 +190,44 @@ choice = st.selectbox(
     key="bayes_center",
 )
 
-# Probe for the dependency, not for the import. `fpa.forecast.bayes` lazy-imports
-# numpyro *inside* fit(), which is what keeps the pipeline and the test suite free of
-# the heavy stack — and it means `from fpa.forecast.bayes import forecast_intervals`
-# succeeds on a host where numpyro is absent. Guarding that import was dead code: the
-# ModuleNotFoundError fired later, at call time, outside the try, and reached the
-# hosted app as a raw traceback.
-#
-# The same shape as the other defects this project keeps finding: a check that passes
-# for a reason unrelated to what it was meant to verify.
-if not _HAS_BAYES:
+# Read a pinned posterior rather than fitting one. Sampling at read time was wrong
+# twice: it cannot run on the hosted deploy at all, and locally it took minutes behind
+# a button that claimed fifteen seconds. The draws are fitted once, offline, and
+# committed the same way the data vintage is — so serving a fan is a NumPy forward
+# simulation in milliseconds, with no JAX anywhere on this page.
+posterior = load_posterior(result.settings)
+history = leaves[choice].dropna()
+bands = None
+
+if posterior is None:
     st.info(
-        "**Not available on this host.** NumPyro and JAX are deliberately excluded from "
-        "`requirements.txt` — the pipeline and all 123 tests must run without them, and a "
-        "free hosted deploy has neither the memory nor the CPU budget for a NUTS fit that "
-        "takes minutes on a laptop. Run locally with "
-        "`pip install -r requirements-bayes.txt`, then `python -m fpa --intervals`. The "
-        "measured calibration is in `reports/interval_calibration.md` either way — and it "
-        "is provisional; see the note below."
+        "**No pinned posterior in this vintage.** Build it with "
+        "`python -m fpa.forecast.posterior` — nine NUTS fits, a few minutes, offline. "
+        "It writes ~1 MB of draws that this page reads directly. Measured calibration "
+        "lives in `reports/interval_calibration.md` regardless."
     )
-elif st.button("Fit posterior (NUTS — minutes, not seconds)", key="fit_bayes"):
-    from fpa.forecast.bayes import forecast_intervals
+elif choice in stale_series(posterior, leaves):
+    # The stamp is the point. A cached posterior is a number computed from inputs that
+    # may since have moved, and nothing about the resulting fan would look wrong.
+    st.error(
+        f"**The stored posterior does not match the current data for "
+        f"`{choice[0]} / {choice[1]}`.** The digest of the series on disk differs from "
+        "the one these draws were fitted to — the ledger has changed since the fit. "
+        "Rebuild with `python -m fpa.forecast.posterior`. No interval is shown, because "
+        "a fan drawn from a stale posterior looks exactly like a valid one."
+    )
+else:
+    bands = posterior_intervals(posterior, choice, result.settings.horizon_months)
+    if not bands.attrs["converged"]:
+        st.warning(
+            f"**This fit did not converge** — R-hat {bands.attrs['worst_rhat']:.3f} "
+            f"(ceiling 1.01), ESS {bands.attrs['min_ess']:.0f} (floor 400). The interval "
+            "below is computed from a posterior the sampler did not fully explore. It is "
+            "shown because hiding it would be worse than labelling it, but it is not "
+            "evidence of anything."
+        )
 
-    history = leaves[choice].dropna()
-    try:
-        with st.spinner("Running NUTS — 4 chains, this takes a few minutes…"):
-            st.session_state["intervals"] = (
-                choice,
-                history,
-                forecast_intervals(history, result.settings.horizon_months),
-            )
-    except Exception as exc:  # noqa: BLE001 - a failed fit must not traceback at a reader
-        st.error(f"The sampler failed on `{choice[0]} / {choice[1]}`: {exc}")
-
-stored = st.session_state.get("intervals")
-if stored and stored[0] == choice:
-    _, history, bands = stored
+if bands is not None:
 
     fan = go.Figure()
     fan.add_trace(go.Scatter(
@@ -201,13 +256,24 @@ if stored and stored[0] == choice:
     st.plotly_chart(fan, width="stretch")
 
     width = bands["p90"] - bands["p10"]
-    columns = st.columns(3)
+    columns = st.columns(5)
     columns[0].metric("Interval width, month 1", f"${width.iloc[0] / 1e6:,.0f}M")
     columns[1].metric(
         "Month 12", f"${width.iloc[-1] / 1e6:,.0f}M",
         f"{width.iloc[-1] / width.iloc[0]:.1f}x wider", delta_color="off",
     )
+    # All three diagnostics on screen, not just the one that looks reassuring. This is
+    # the page's own thesis applied to itself: divergences alone read healthy on a fit
+    # whose chains had frozen.
     columns[2].metric("Divergent transitions", f"{bands.attrs.get('divergences', 0)}")
+    columns[3].metric(
+        "R-hat (worst)", f"{bands.attrs['worst_rhat']:.3f}",
+        "ok" if bands.attrs["worst_rhat"] <= 1.01 else "above 1.01", delta_color="off",
+    )
+    columns[4].metric(
+        "ESS (min)", f"{bands.attrs['min_ess']:,.0f}",
+        "ok" if bands.attrs["min_ess"] >= 400 else "below 400", delta_color="off",
+    )
     st.caption(
         "The band **must** widen with horizon — a fitted straight line would grow like "
         "√h and understate long-horizon risk, which is the reason for an integrated "

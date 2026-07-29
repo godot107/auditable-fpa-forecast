@@ -11,7 +11,7 @@
   <img alt="Odoo"      src="https://img.shields.io/badge/Odoo-18.0-714B67?logo=odoo&logoColor=white">
   <img alt="NumPyro"   src="https://img.shields.io/badge/NumPyro-NUTS-EE4C2C">
   <img alt="Controls"  src="https://img.shields.io/badge/controls-23_(21_blocking)-2e7d32">
-  <img alt="Tests"     src="https://img.shields.io/badge/tests-123-2e7d32">
+  <img alt="Tests"     src="https://img.shields.io/badge/tests-140-2e7d32">
   <img alt="License"   src="https://img.shields.io/badge/license-MIT-blue">
 </p>
 
@@ -49,7 +49,7 @@ SEC EDGAR XBRL ──> three statements ──> disaggregation ──> Odoo (pos
 | Forecast vs seasonal-naive | MASE **0.936** on filed quarters — beats it by 6%, loses on 4 series |
 | Interval calibration | **provisional** — 8 of 9 backtest fits do not converge; see below |
 | Groundedness checker | **0% false acceptance, 100% parse coverage** over 364 cases |
-| Controls / tests | **23 controls** (21 blocking), **123 tests** |
+| Controls / tests | **23 controls** (21 blocking), **140 tests** |
 
 **Status:** built and verified end to end. `python -m fpa` exits 0 with 21/23 controls passing
 and zero blocking failures; the two open items are `WARN` and structural.
@@ -94,7 +94,7 @@ constraint rather than around the model:
 | Budget-vs-actual variance bridge (spend / mix decomposition) | Built |
 | Grounded LLM commentary, human-in-the-loop, append-only audit log | Built |
 | Measured checker error rates — false acceptance, false rejection, parse coverage | Built |
-| Test suite (123 tests) | Built |
+| Test suite (140 tests) | Built |
 | Bayesian posterior-predictive intervals (NumPyro), scored on coverage **and** sharpness | Built (opt-in) |
 
 ---
@@ -280,7 +280,7 @@ Without those, "0% false acceptance" is indistinguishable from an instrument tha
 that needs ~50 real drafts adjudicated by hand — a model writing "roughly six hundred
 million" in words would defeat every regex here, and nothing in this corpus would notice.
 
-**A test suite that only passes proves nothing.** A dozen of the 123 tests deliberately corrupt
+**A test suite that only passes proves nothing.** A dozen of the 140 tests deliberately corrupt
 the data and assert the control catches it — an unbalanced balance sheet, a double-counted
 line, a negative content-asset balance, a broken cash roll-forward, a share count misread as
 dollars, a double-counted region, a forecast split that no longer ties. One asserts pinball
@@ -530,7 +530,7 @@ python -m venv .venv && .venv/bin/pip install -r requirements.txt
 cp .env.example .env          # set EDGAR_USER_AGENT to "Your Name your@email"
 
 .venv/bin/python -m fpa       # ingest -> controls -> forecast; prints the control report
-.venv/bin/python -m pytest    # 123 tests
+.venv/bin/python -m pytest    # 140 tests
 .venv/bin/streamlit run app/Home.py
 ```
 
@@ -630,8 +630,40 @@ Two things degrade by design rather than break:
 
 | | Hosted behaviour | Why |
 |---|---|---|
-| NUTS interval fit | Button reports the stack is absent | NumPyro/JAX are deliberately out of `requirements.txt`; a hosted fit would not fit the memory budget. Measured calibration is in `reports/interval_calibration.md`. |
+| Posterior-predictive intervals | **Work fully** — served from pinned draws | The posterior is fitted offline and committed like the data vintage. The app forward-simulates in NumPy, so no sampler and no JAX ever run at read time. |
 | `claudecode` narrative provider | Hidden; `fixture` remains | It shells out to the `claude` CLI, which is not on the host. The groundedness gate is provider-agnostic, so the page still demonstrates the rule it exists to demonstrate. |
+
+### The posterior is pinned, not fitted at read time
+
+Sampling inside the app was wrong twice: it could not run on the hosted deploy at all, and
+locally it took minutes behind a button labelled "~15s". Neither is a property of the model
+— both are a property of doing expensive work at read time.
+
+```bash
+.venv/bin/python -m fpa.forecast.posterior   # nine NUTS fits, offline, a few minutes
+```
+
+writes `data/posterior_nflx.<vintage>.parquet`. Only the **terminal** level and trend are
+stored, plus twelve seasonal offsets and two scale parameters — everything
+`simulate_from_state` consumes. The latent path is discarded because the forward simulation
+never reads it, which is the difference between ~1 MB and ~30 MB.
+
+Two properties make this safe rather than merely fast:
+
+- **One simulation, two entry points.** A live fit and the cached draws run the same loop
+  (`bayes.simulate_from_state`), and a test asserts they return identical arrays. Two copies
+  would be free to drift, and the calibration report would stop describing what the app draws.
+- **Every series carries a digest of the numbers it was fitted to.** Caching model output is
+  the same trap as everything else in this repo: run `--refresh`, the filings move, the draws
+  do not, and the resulting fan looks entirely normal. `stale_series` recomputes the digest
+  from the live ledger on every read and the page **refuses to plot** on a mismatch. The
+  digest covers the period index too, because the same values shifted a month imply different
+  seasonal offsets.
+
+R-hat, ESS and divergences are stored alongside the draws and shown on the chart. An
+unconverged series is labelled as such on screen rather than quietly plotted — 8 of 9
+backtest fits do not converge, and an interval whose diagnostics nobody inspected is not
+evidence.
 
 ---
 
@@ -662,7 +694,7 @@ app/                 Streamlit: Overview, Controls, Forecast, Variance, Commenta
 sql/                 Extract queries as first-class artifacts
 reports/             Generated calibration report (--intervals)
 docker/              Odoo 18 + Postgres, OCA addons, fetch script
-tests/               123 tests, including tests that validate the validators
+tests/               140 tests, including tests that validate the validators
 data/                Pinned Parquet vintages (git-ignored, reproducible)
 ```
 
