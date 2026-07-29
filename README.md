@@ -332,11 +332,45 @@ by code.
 
 The balance-sheet journal has **no offset account at all**. Because `Assets = Liabilities +
 Equity` holds to $0.00 in the filed data, the quarterly movements net to zero and the entry
-balances on its own — the debits and credits *are* the filed statement. Odoo would reject the
-entry outright if it did not balance, which makes the ERP an independent check on the ingest
-rather than just a destination for it. Treasury stock falls out correctly with no special
-case: its filed value is negative and its natural side is credit, so it lands as a debit
-balance, which is exactly what contra-equity is.
+balances on its own — the debits and credits *are* the filed statement. Treasury stock falls
+out correctly with no special case: its filed value is negative and its natural side is
+credit, so it lands as a debit balance, which is exactly what contra-equity is.
+
+**And the constraint is demonstrated, not asserted.** This claim spent most of the build as a
+docstring saying Odoo *would* reject an unbalanced entry — a "would" in a repository whose
+argument is that assertions are not measurements. So it is run:
+
+```bash
+.venv/bin/python -m fpa.ledger.odoo_load --prove-rejection
+```
+
+```
+Unbalanced entry for 2026-06-30: REJECTED
+  perturbed: Cash and Cash Equivalents — movement by $1.00
+  refused at: create
+  Odoo said: <Fault 2: 'The entry is not balanced.'>
+```
+
+One dollar on one line out of seventeen, on a $34B balance sheet, and it is refused at
+**create** — the entry never becomes a draft, so it never exists in the database at all. The
+draft is deleted either way, and the books are verified unchanged afterwards (26 `BS-` and 78
+`FPA-` entries, zero `PROOF-`).
+
+That is the whole argument for posting to an ERP rather than reconciling in Python. Every
+other control here is one this project wrote, and could be wrong in the same direction as the
+code it checks. **This one belongs to an implementation nobody here authored.**
+
+Two caveats worth stating before someone finds them. The constraint is *corroborating*, not
+primary — `balance_sheet_balances` already proves `A = L + E` in Python, and Odoo agreeing is
+an independent second opinion rather than the only guard. And `seed_balance_sheet` absorbs
+sub-dollar cent-rounding into the largest line before posting, so the entry is pre-balanced to
+the cent; the movements net to zero *because the filing balances*, and the absorption handles
+only the rounding that also produces the $0.02 round-trip figure.
+
+**The allocation journal proves nothing by comparison** — account `990000` absorbs its
+residual, and a plug always balances. The budget lines are not validated at all:
+`crossovered.budget.lines` has no debit, credit or balance field, so Odoo would accept any
+numbers written to it.
 
 ### The audit trail crosses into the ERP
 

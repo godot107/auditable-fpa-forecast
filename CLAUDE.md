@@ -161,6 +161,22 @@ docker compose -f docker/docker-compose.yml up -d
   `account_budget_oca`) supply the reporting half; stock Odoo is an ERP.
 - **yfinance is not used to fill gaps.** A vendor figure has no accession number and uses
   a normalized basis. A documented gap beats an untraceable number.
+- **The rejection is demonstrated, not asserted — and it fires at `create`.**
+  `--prove-rejection` perturbs one balance-sheet line by $1.00 and Odoo refuses with
+  `Fault 2: 'The entry is not balanced.'` **at creation**, so the unbalanced entry never
+  becomes a draft and never exists in the database. This spent most of the build as a
+  docstring saying Odoo *would* reject — a "would" in a repo insisting on measurements.
+  Two caveats owned rather than discovered: the check is *corroborating* (Python's
+  `balance_sheet_balances` already proves `A = L + E`, so this is an independent second
+  opinion), and `seed_balance_sheet` pre-absorbs sub-dollar cent rounding, so the entry
+  arrives balanced to the cent.
+- **Odoo validates the filed balance sheet only.** The allocation journal settles to
+  `990000` and a plug always balances. Budget lines are not validated at all —
+  `crossovered.budget.lines` has no debit, credit or balance field, so the 924 lines
+  across 8 budgets are records Odoo would accept at any value. The defensible sentence:
+  *"Odoo validates the filed balance sheet, because it rejects an entry that does not
+  balance and that entry has no plug. It does not validate the budget or the
+  allocations."*
 - **The balance sheet posts with no clearing account.** `A = L + E` holds to **$0.00**
   across all 26 quarters, so a quarterly movement entry balances on its own — the debits
   and credits *are* the filed statement. Odoo rejects the entry if it does not balance,

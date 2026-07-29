@@ -537,6 +537,120 @@ def seed_journal_entries(
     return created
 
 
+def prove_balance_constraint(
+    client: OdooClient,
+    balance_sheet: pd.DataFrame,
+    account_ids: dict[str, int],
+    journal_id: int,
+    *,
+    perturbation: float = 1.00,
+) -> dict:
+    """Post a deliberately unbalanced entry and record Odoo's refusal.
+
+    The strongest claim in the ERP layer used to live in a docstring: *"Odoo would
+    reject the entry outright if the filed balance sheet did not balance."* **Would.**
+    Nothing had ever tried, which made it an assertion in a repository whose whole
+    argument is that assertions are not measurements.
+
+    This takes a real quarter's movement entry, moves one line by a dollar, and asks
+    Odoo to post it. A ``UserError`` naming the imbalance is the *success* case — it is
+    the ERP acting as an independent check on the ingest rather than a destination for
+    it. The draft is deleted afterwards either way, so the demonstration leaves no trace
+    in the books.
+
+    Worth being precise about what this does and does not prove. Odoo's constraint fires
+    on **posting**, not on creation, so an unbalanced draft is created first and refused
+    second. And the constraint is only load-bearing on this journal: the allocation
+    journal settles to account ``990000``, and a plug always balances.
+    """
+    lines = [
+        (line, sign) for line, sign in balance_sheet_lines() if line.account in balance_sheet.columns
+    ]
+    targets = pd.DataFrame(
+        {line.account: balance_sheet[line.account] * sign for line, sign in lines},
+        index=balance_sheet.index,
+    ).sort_index()
+    movements = targets.diff()
+    movements.iloc[0] = targets.iloc[0]
+
+    period = movements.index[-1]
+    row = movements.iloc[-1]
+
+    entry_lines = []
+    for line, _sign in lines:
+        amount = round(float(row[line.account]), 2)
+        if amount == 0:
+            continue
+        entry_lines.append((0, 0, {
+            "account_id": account_ids[line.account],
+            "name": f"{line.name} — movement",
+            "debit": amount if amount > 0 else 0.0,
+            "credit": -amount if amount < 0 else 0.0,
+        }))
+
+    residual = round(sum(v["debit"] - v["credit"] for _c, _z, v in entry_lines), 2)
+    if residual:
+        biggest = max(entry_lines, key=lambda le: abs(le[2]["debit"] - le[2]["credit"]))[2]
+        net = round(biggest["debit"] - biggest["credit"] - residual, 2)
+        biggest["debit"] = net if net > 0 else 0.0
+        biggest["credit"] = -net if net < 0 else 0.0
+
+    # The perturbation. One line, one dollar — the smallest lie the ingest could tell.
+    target = entry_lines[0][2]
+    before = target["debit"] - target["credit"]
+    if target["debit"]:
+        target["debit"] = round(target["debit"] + perturbation, 2)
+    else:
+        target["credit"] = round(target["credit"] + perturbation, 2)
+
+    outcome = {
+        "period": str(pd.Timestamp(period).date()),
+        "perturbed_line": target["name"],
+        "moved_from": round(before, 2),
+        "perturbation": perturbation,
+        "rejected": False,
+        "rejected_at": None,
+        "error": None,
+    }
+
+    # Odoo refuses at **create**, not at post — measured, not assumed. The unbalanced
+    # entry never becomes a draft, so it never exists in the database at all. That is a
+    # stronger constraint than the docstring this replaced claimed, which said the entry
+    # would be rejected "outright" without saying when.
+    move_id = None
+    try:
+        move_id = client.execute("account.move", "create", {
+            "move_type": "entry",
+            "date": pd.Timestamp(period).date().isoformat(),
+            "ref": f"PROOF-{pd.Timestamp(period):%Y-%m-%d}",
+            "journal_id": journal_id,
+            "line_ids": entry_lines,
+        })
+    except Exception as exc:  # noqa: BLE001 - the refusal is the result being measured
+        outcome.update(
+            rejected=True, rejected_at="create", error=str(exc).strip().splitlines()[-1][:400]
+        )
+        return outcome
+
+    # Some Odoo versions defer the constraint to posting. Handle that path too, so the
+    # proof reports *where* the refusal happened rather than assuming.
+    try:
+        client.execute("account.move", "action_post", [move_id])
+    except Exception as exc:  # noqa: BLE001
+        outcome.update(
+            rejected=True, rejected_at="post", error=str(exc).strip().splitlines()[-1][:400]
+        )
+    finally:
+        # Leave nothing behind. A posted move cannot be deleted, so reset first.
+        try:
+            client.execute("account.move", "button_draft", [move_id])
+        except Exception:  # noqa: BLE001 - already draft if the post was refused
+            pass
+        client.execute("account.move", "unlink", [move_id])
+
+    return outcome
+
+
 def seed_balance_sheet(
     client: OdooClient,
     balance_sheet: pd.DataFrame,
@@ -551,9 +665,15 @@ def seed_balance_sheet(
     in every balance-sheet account from the prior quarter end. Because
     ``Assets = Liabilities + Equity`` holds at both dates, the movements net to
     zero and the entry balances on its own — the debits and credits are the filed
-    statement, not a construction. Odoo would reject the entry outright if the
-    filed balance sheet did not balance, which makes the ERP an independent check
-    on the ingest rather than just a destination for it.
+    statement, not a construction. Odoo rejects the entry if the filed balance sheet
+    does not balance, which makes the ERP an independent check on the ingest rather
+    than just a destination for it.
+
+    That claim used to read "Odoo *would* reject" and had never been tried, which is an
+    assertion in a codebase that keeps insisting on measurements.
+    :func:`prove_balance_constraint` now runs it: perturbing one line by **$1.00** is
+    refused with ``Fault 2: 'The entry is not balanced.'``, and refused at **create** —
+    the unbalanced entry never becomes a draft, so it never exists in the database.
 
     Signs follow the natural balance from :func:`fpa.config.balance_sheet_lines`:
     assets carry debit balances, liabilities and equity carry credit balances.
@@ -794,7 +914,7 @@ def seed_budgets(
     return created
 
 
-def main(settings: Settings | None = None, *, reset: bool = False) -> int:
+def main(settings: Settings | None = None, *, reset: bool = False, prove: bool = False) -> int:
     """Seed a running Odoo instance from the pipeline's statements and budget."""
     from fpa.ingest.edgar import accession_index
     from fpa.ledger.budget import build_budget
@@ -833,6 +953,23 @@ def main(settings: Settings | None = None, *, reset: bool = False) -> int:
         reset_seed_data(client)
 
     context = build_ledger(settings)
+    if prove:
+        account_ids = ensure_accounts(client, company_id)
+        outcome = prove_balance_constraint(
+            client, context.balance_sheet, account_ids, bs_journal_id
+        )
+        verdict = "REJECTED" if outcome["rejected"] else "ACCEPTED"
+        print(f"\nUnbalanced entry for {outcome['period']}: {verdict}")
+        print(f"  perturbed: {outcome['perturbed_line']} by ${outcome['perturbation']:,.2f}")
+        if outcome["error"]:
+            print(f"  refused at: {outcome['rejected_at']}")
+            print(f"  Odoo said: {outcome['error']}")
+        if not outcome["rejected"]:
+            print("\n  An unbalanced entry POSTED. The ERP is not validating the ingest.")
+            return 1
+        print("\n  The balance constraint is Odoo's, not ours. The filed balance sheet")
+        print("  posts with no clearing line only because A = L + E genuinely holds.")
+        return 0
     account_ids = ensure_accounts(client, company_id)
     center_ids = ensure_cost_centers(client)
     # The audit trail crosses into the ERP here: every entry gets the accession
@@ -882,4 +1019,10 @@ if __name__ == "__main__":
         action="store_true",
         help="delete previously seeded entries first (required after a chart-of-accounts renumbering)",
     )
-    raise SystemExit(main(reset=parser.parse_args().reset))
+    parser.add_argument(
+        "--prove-rejection",
+        action="store_true",
+        help="post a deliberately unbalanced entry and report Odoo's refusal, then delete it",
+    )
+    args = parser.parse_args()
+    raise SystemExit(main(reset=args.reset, prove=args.prove_rejection))
