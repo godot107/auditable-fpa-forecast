@@ -18,7 +18,7 @@ from pathlib import Path
 import pandas as pd
 
 from fpa.config import Settings
-from shared.cache import cached_parquet
+from fpa.cache import cached_parquet
 
 logger = logging.getLogger(__name__)
 

@@ -133,7 +133,14 @@ if st.button("Fit posterior (NUTS, ~15s)", key="fit_bayes"):
     try:
         from fpa.forecast.bayes import forecast_intervals
     except ImportError:
-        st.error("NumPyro/JAX not installed — `pip install -r requirements-bayes.txt`.")
+        st.warning(
+            "NumPyro/JAX are not installed here. They are kept out of `requirements.txt` "
+            "on purpose: the whole pipeline and test suite must run without the heavy "
+            "stack, and a hosted deploy has neither the memory nor the CPU budget for a "
+            "NUTS fit. Run locally with `pip install -r requirements-bayes.txt`. The "
+            "measured calibration is in `reports/interval_calibration.md` either way — "
+            "and it is provisional; see the note below."
+        )
     else:
         history = leaves[choice].dropna()
         with st.spinner("Running NUTS…"):

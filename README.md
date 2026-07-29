@@ -34,7 +34,7 @@ SEC EDGAR XBRL ──> three statements ──> disaggregation ──> Odoo (pos
 | Forecast vs seasonal-naive | MASE **0.936** on filed quarters — beats it by 6%, loses on 4 series |
 | Interval calibration | **provisional** — 8 of 9 backtest fits do not converge; see below |
 | Groundedness checker | **0% false acceptance, 100% parse coverage** over 364 cases |
-| Controls / tests | **23 controls** (21 blocking), **104 tests** |
+| Controls / tests | **23 controls** (21 blocking), **105 tests** |
 
 **Status:** built and verified end to end. `python -m fpa` exits 0 with 21/23 controls passing
 and zero blocking failures; the two open items are `WARN` and structural.
@@ -79,7 +79,7 @@ constraint rather than around the model:
 | Budget-vs-actual variance bridge (spend / mix decomposition) | Built |
 | Grounded LLM commentary, human-in-the-loop, append-only audit log | Built |
 | Measured checker error rates — false acceptance, false rejection, parse coverage | Built |
-| Test suite (104 tests) | Built |
+| Test suite (105 tests) | Built |
 | Bayesian posterior-predictive intervals (NumPyro), scored on coverage **and** sharpness | Built (opt-in) |
 
 ---
@@ -265,7 +265,7 @@ Without those, "0% false acceptance" is indistinguishable from an instrument tha
 that needs ~50 real drafts adjudicated by hand — a model writing "roughly six hundred
 million" in words would defeat every regex here, and nothing in this corpus would notice.
 
-**A test suite that only passes proves nothing.** A dozen of the 90 tests deliberately corrupt
+**A test suite that only passes proves nothing.** A dozen of the 105 tests deliberately corrupt
 the data and assert the control catches it — an unbalanced balance sheet, a double-counted
 line, a negative content-asset balance, a broken cash roll-forward, a share count misread as
 dollars, a double-counted region, a forecast split that no longer ties. One asserts pinball
@@ -474,7 +474,7 @@ python -m venv .venv && .venv/bin/pip install -r requirements.txt
 cp .env.example .env          # set EDGAR_USER_AGENT to "Your Name your@email"
 
 .venv/bin/python -m fpa       # ingest -> controls -> forecast; prints the control report
-.venv/bin/python -m pytest    # 104 tests
+.venv/bin/python -m pytest    # 105 tests
 .venv/bin/streamlit run app/Home.py
 ```
 
@@ -488,9 +488,11 @@ Optional, and deliberately not on the demo path — each fold is a full NUTS fit
 
 `--refresh` re-pulls from EDGAR instead of the pinned vintage.
 
-> **Note:** the pipeline imports `cached_parquet` from the workspace-level `shared/` package.
-> If running outside this workspace, add the workspace root to `PYTHONPATH` or vendor
-> `shared/cache.py` into the project.
+The pinned vintage snapshots are committed (92 KB of Parquet), so a fresh clone runs with
+no network call and reproduces every figure in this README byte for byte. `--refresh`
+re-pulls from EDGAR. The SEC Financial Statement Data Set archives that `--refresh` reads
+for regional revenue are **not** committed — 444 MB of raw ZIPs, and the derived Parquet
+is already here.
 
 ### Optional: the ERP layer
 
@@ -547,6 +549,26 @@ done nothing.
 
 ---
 
+### Hosted deploy
+
+The app is deployable to Streamlit Community Cloud as-is: entrypoint `app/Home.py`,
+`requirements.txt` at the repo root, no secrets required.
+
+It works hosted for the same reason it works with the containers stopped — **the app reads
+the materialized extract, never live Odoo.** The committed vintage carries the ERP round-trip
+tables alongside the EDGAR facts, so all 23 controls run and report *verified* rather than
+*skipped* on a host that has never seen a database. That is not a demo shortcut; it is how
+FP&A reporting actually works, and it is why the ERP being a stand-in costs nothing.
+
+Two things degrade by design rather than break:
+
+| | Hosted behaviour | Why |
+|---|---|---|
+| NUTS interval fit | Button reports the stack is absent | NumPyro/JAX are deliberately out of `requirements.txt`; a hosted fit would not fit the memory budget. Measured calibration is in `reports/interval_calibration.md`. |
+| `claudecode` narrative provider | Hidden; `fixture` remains | It shells out to the `claude` CLI, which is not on the host. The groundedness gate is provider-agnostic, so the page still demonstrates the rule it exists to demonstrate. |
+
+---
+
 ## Project layout
 
 ```
@@ -574,7 +596,7 @@ app/                 Streamlit: Overview, Controls, Forecast, Variance, Commenta
 sql/                 Extract queries as first-class artifacts
 reports/             Generated calibration report (--intervals)
 docker/              Odoo 18 + Postgres, OCA addons, fetch script
-tests/               104 tests, including tests that validate the validators
+tests/               105 tests, including tests that validate the validators
 data/                Pinned Parquet vintages (git-ignored, reproducible)
 ```
 

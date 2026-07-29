@@ -38,7 +38,7 @@ from fpa.config import (
     NON_ADDITIVE_ACCOUNTS,
     Settings,
 )
-from shared.cache import cached_parquet
+from fpa.cache import cached_parquet
 
 logger = logging.getLogger(__name__)
 

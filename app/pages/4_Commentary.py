@@ -9,6 +9,7 @@ reaches the reviewer.
 from __future__ import annotations
 
 import json
+import shutil
 
 import streamlit as st
 
@@ -39,11 +40,17 @@ report = build_variance_report(
 )
 facts = from_pipeline(result, report)
 
+# `claudecode` shells out to the `claude` CLI, which exists on a developer machine and
+# not on a hosted deploy. Offering an option that can only fail is worse than not
+# offering it — and the seam is the point being demonstrated, not the binary.
+_has_claude_cli = shutil.which("claude") is not None
+_providers = ["fixture", "claudecode"] if _has_claude_cli else ["fixture"]
+
 col1, col2 = st.columns([1, 2])
 with col1:
     provider_name = st.selectbox(
         "Provider",
-        ["fixture", "claudecode"],
+        _providers,
         help="fixture = deterministic, offline. claudecode = headless `claude -p`, no API key.",
     )
 with col2:
@@ -51,6 +58,13 @@ with col2:
         "`anthropic` is a documented seam, deliberately unimplemented — the facts payload, "
         "schema, groundedness check and approval log are all provider-agnostic already."
     )
+    if not _has_claude_cli:
+        st.caption(
+            ":grey[`claudecode` is hidden here because the `claude` CLI is not on this "
+            "host. That the page still works is the argument for the seam: the "
+            "groundedness gate is what guards the number, and it does not care which "
+            "model produced the prose.]"
+        )
 
 if st.button("Generate draft", type="primary"):
     with st.spinner("Generating and checking groundedness…"):

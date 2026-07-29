@@ -180,7 +180,7 @@ def load_segment_revenue(
     fact table, kept deliberately identical so the two ingests cannot disagree about
     what a restatement is.
     """
-    from shared.cache import cached_parquet
+    from fpa.cache import cached_parquet
 
     quarters = quarters or settings.segment_quarters
     path = settings.vintage_path(f"segment_revenue_{settings.ticker.lower()}")

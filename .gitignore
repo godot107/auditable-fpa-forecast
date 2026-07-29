@@ -14,10 +14,18 @@ __pycache__/
 docker/odoo-data/
 docker/pg-data/
 
-# Regenerable artifacts. Data snapshots are pinned vintages — reproducible from
-# the EDGAR ingest — so they stay out of git, but keep the directory itself.
+# The pinned vintage snapshots ARE committed — 92 KB total, and a hosted deploy
+# (Streamlit Community Cloud) clones the repo with no network egress and no ERP, so
+# without them the app has nothing to read. Committing them also makes the headline
+# figures reproducible by a reader byte for byte. `--refresh` regenerates them.
 data/*
 !data/.gitkeep
+!data/*.parquet
+
+# The SEC Financial Statement Data Set archives stay out — 444 MB of raw ZIPs, and
+# segment_revenue_*.parquet is already derived from them. They are only read on a
+# cache miss, i.e. `--refresh`.
+data/fsds/
 
 # Generated reports, except the figures the README embeds.
 reports/*

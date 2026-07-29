@@ -1,0 +1,9 @@
+# Pinned so a hosted deploy renders the way the app was built. The provenance
+# badges and metric cards in app/_shared.py use low-alpha white overlays, which
+# disappear on a light background — the badge colours are the whole point.
+[theme]
+base = "dark"
+primaryColor = "#1565c0"
+
+[browser]
+gatherUsageStats = false
