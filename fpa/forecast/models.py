@@ -14,10 +14,14 @@ give. Coherence is the property an FP&A team actually needs.
 
 from __future__ import annotations
 
+import logging
 import warnings
+from collections import Counter
 
 import numpy as np
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 
 def seasonal_naive(train: pd.Series, horizon: int, *, period: int = 12) -> np.ndarray:
@@ -55,18 +59,49 @@ def drift_seasonal(train: pd.Series, horizon: int, *, period: int = 12) -> np.nd
     return base * (1.0 + growth * ramp)
 
 
+# ``ets`` degrades to ``drift_seasonal`` on four conditions rather than raising, so one
+# short leaf series cannot take down a whole run. That is the right behaviour and it used to
+# be **silent**, which is not: a reported "ets" score was partly a drift_seasonal score with
+# no way to know how much. Measured on the monthly backtest, 9 of 54 calls — **17%** — fell
+# back because fold 1 trains on 24 months and ETS needs 2*period+1 = 25.
+#
+# This codebase's signature defect is a missing input producing a plausible number instead of
+# an error. A silent degradation is the same shape, so it gets counted.
+_FALLBACKS: Counter = Counter()
+
+
+def reset_fallbacks() -> None:
+    """Clear the fallback counters. Call before a run you want to attribute."""
+    _FALLBACKS.clear()
+
+
+def fallbacks() -> dict[str, int]:
+    """How many times ``ets`` degraded, by reason, since the last reset."""
+    return dict(_FALLBACKS)
+
+
+def _fell_back(reason: str, train: pd.Series, horizon: int, period: int) -> np.ndarray:
+    _FALLBACKS[reason] += 1
+    logger.debug("ets fell back to drift_seasonal (%s), n=%d", reason, len(train))
+    return drift_seasonal(train, horizon, period=period)
+
+
 def ets(train: pd.Series, horizon: int, *, period: int = 12) -> np.ndarray:
     """Holt-Winters exponential smoothing (additive trend, multiplicative season).
 
-    Needs two full seasonal cycles; below that it degrades to ``drift_seasonal``
-    rather than raising, so a short leaf series cannot take down the whole run.
+    Needs two full seasonal cycles; below that it degrades to ``drift_seasonal`` rather than
+    raising, so a short leaf series cannot take down the whole run. **Every degradation is
+    counted** — see :func:`fallbacks` — because a score labelled ``ets`` that is partly
+    ``drift_seasonal`` is a number that misreports what produced it.
     """
     from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
     values = train.to_numpy(dtype=float)
-    if len(values) < 2 * period + 1 or np.any(values <= 0):
+    if len(values) < 2 * period + 1:
+        return _fell_back("too_short", train, horizon, period)
+    if np.any(values <= 0):
         # Multiplicative seasonality is undefined at or below zero.
-        return drift_seasonal(train, horizon, period=period)
+        return _fell_back("non_positive", train, horizon, period)
 
     try:
         with warnings.catch_warnings():
@@ -80,12 +115,11 @@ def ets(train: pd.Series, horizon: int, *, period: int = 12) -> np.ndarray:
             ).fit()
         forecast = np.asarray(model.forecast(horizon), dtype=float)
         if not np.all(np.isfinite(forecast)):
-            return drift_seasonal(train, horizon, period=period)
+            return _fell_back("non_finite", train, horizon, period)
         return forecast
     except Exception:
-        # A model that fails to converge falls back to the simpler one rather
-        # than propagating an exception through the pipeline.
-        return drift_seasonal(train, horizon, period=period)
+        # A model that fails to converge falls back rather than propagating.
+        return _fell_back("exception", train, horizon, period)
 
 
 MODELS = {

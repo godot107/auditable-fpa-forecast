@@ -25,12 +25,12 @@ extra machinery would be cargo-culted rather than reasoned.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 import pandas as pd
 
-from fpa.forecast.models import MODELS
+from fpa.forecast.models import MODELS, fallbacks, reset_fallbacks
 
 BENCHMARK = "seasonal_naive"
 
@@ -102,6 +102,16 @@ class BacktestResult:
 
     detail: pd.DataFrame  # one row per (series, model, fold, horizon_step)
     by_model: pd.DataFrame  # aggregated to (series, model)
+    # How often `ets` silently degraded to drift_seasonal during this backtest, and out of
+    # how many opportunities. A score labelled `ets` that is partly drift_seasonal misreports
+    # what produced it, so the rate travels with the result.
+    fallbacks: dict = field(default_factory=dict)
+    ets_calls: int = 0
+
+    @property
+    def fallback_rate(self) -> float:
+        total = sum(self.fallbacks.values())
+        return total / self.ets_calls if self.ets_calls else 0.0
 
     def summary(self) -> pd.DataFrame:
         """Mean MASE and wMAPE per model across every series and fold."""
@@ -151,10 +161,20 @@ def run_backtest(
     n = len(frame)
     splits = rolling_origin_splits(n, horizon, folds=folds)
 
+    # Every forecast is computed **once** and both outputs are derived from it. An earlier
+    # version ran the models twice — once for the detail rows, once for the summary — which
+    # doubled the work, required the two passes to agree, and made the fallback counter below
+    # report every degradation twice.
+    reset_fallbacks()
+
     detail_rows: list[dict] = []
+    summary_rows: list[dict] = []
+
     for column in frame.columns:
         values = frame[column].to_numpy(dtype=float)
         name = column if isinstance(column, str) else " / ".join(map(str, column))
+
+        scores: dict[str, list[tuple[float, float]]] = {m: [] for m in models}
 
         for fold_idx, (train_idx, test_idx) in enumerate(splits):
             train = pd.Series(values[train_idx], index=frame.index[train_idx])
@@ -162,6 +182,7 @@ def run_backtest(
 
             for model_name, fn in models.items():
                 predicted = np.asarray(fn(train, len(test_idx), period=period), dtype=float)
+
                 for step, (a, p) in enumerate(zip(actual, predicted), start=1):
                     detail_rows.append(
                         {
@@ -175,34 +196,33 @@ def run_backtest(
                             "abs_error": abs(a - p),
                         }
                     )
+                # MASE per fold against that fold's own training window — the scale must
+                # come from data the model actually saw.
+                scores[model_name].append(
+                    (
+                        mase(actual, predicted, values[train_idx], period=period),
+                        wmape(actual, predicted),
+                    )
+                )
 
-    detail = pd.DataFrame(detail_rows)
-
-    # Aggregate to (series, model), recomputing MASE per fold against that fold's
-    # own training window — the scale must come from data the model actually saw.
-    summary_rows: list[dict] = []
-    for column in frame.columns:
-        values = frame[column].to_numpy(dtype=float)
-        name = column if isinstance(column, str) else " / ".join(map(str, column))
-        for model_name, fn in models.items():
-            fold_mase, fold_wmape = [], []
-            for train_idx, test_idx in splits:
-                train = pd.Series(values[train_idx], index=frame.index[train_idx])
-                actual = values[test_idx]
-                predicted = np.asarray(fn(train, len(test_idx), period=period), dtype=float)
-                fold_mase.append(mase(actual, predicted, values[train_idx], period=period))
-                fold_wmape.append(wmape(actual, predicted))
+        for model_name, folds_scored in scores.items():
             summary_rows.append(
                 {
                     "series": name,
                     "model": model_name,
-                    "mase": float(np.nanmean(fold_mase)),
-                    "wmape": float(np.nanmean(fold_wmape)),
+                    "mase": float(np.nanmean([s[0] for s in folds_scored])),
+                    "wmape": float(np.nanmean([s[1] for s in folds_scored])),
                     "n_folds": len(splits),
                 }
             )
 
-    return BacktestResult(detail=detail, by_model=pd.DataFrame(summary_rows))
+    total_ets_calls = len(frame.columns) * len(splits)
+    return BacktestResult(
+        detail=pd.DataFrame(detail_rows),
+        by_model=pd.DataFrame(summary_rows),
+        fallbacks=fallbacks(),
+        ets_calls=total_ets_calls,
+    )
 
 
 def validation_report(result: BacktestResult, *, horizon: int, folds: int) -> str:
@@ -308,6 +328,33 @@ def honest_validation_report(
             "revenue and cost compound into a large error in the residual. That is the "
             "case for forecasting the **drivers** and letting the margin fall out, rather "
             "than forecasting the margin directly.",
+        ]
+
+    # A score labelled `ets` that is partly drift_seasonal misreports what produced it, so
+    # the degradation rate is published beside the score rather than left in the code.
+    if monthly.fallbacks or filed_quarterly.fallbacks:
+        lines += [
+            "",
+            "**`ets` does not always run.** It needs `2 x period + 1` observations and "
+            "degrades to `drift_seasonal` below that rather than raising, so one short series "
+            "cannot take down a run. That degradation used to be silent. Measured:",
+            "",
+            "| backtest | ets calls | degraded | rate | why |",
+            "|---|---|---|---|---|",
+        ]
+        for label, result in (("modeled monthly", monthly), ("filed quarterly", filed_quarterly)):
+            reasons = ", ".join(f"`{k}`" for k in result.fallbacks) or "—"
+            lines.append(
+                f"| {label} | {result.ets_calls} | {sum(result.fallbacks.values())} | "
+                f"**{result.fallback_rate:.1%}** | {reasons} |"
+            )
+        lines += [
+            "",
+            "The monthly rate is not noise: the first rolling-origin fold trains on 24 months "
+            "and ETS needs 25, so every series degrades on that fold. **The filed-quarterly "
+            "figure — the one this report leads with — has a 0% rate**, so `0.936` is a real "
+            "ETS score. The contaminated number is the one already disqualified, which limits "
+            "the damage but does not excuse having reported it unlabelled.",
         ]
 
     lines += [

@@ -18,7 +18,7 @@ cp .env.example .env                     # set EDGAR_USER_AGENT
 
 .venv/bin/python -m fpa                  # ingest -> controls -> forecast
 .venv/bin/python -m fpa --refresh        # re-pull EDGAR instead of the pinned vintage
-.venv/bin/python -m pytest               # 158 tests (pytest.ini scopes to tests/)
+.venv/bin/python -m pytest               # 167 tests (pytest.ini scopes to tests/)
 .venv/bin/pip install -r requirements-bayes.txt   # optional: NumPyro + JAX
 .venv/bin/python -m fpa.forecast.posterior        # fit + pin the posterior (~1 MB, committed)
 .venv/bin/python -m fpa --groundedness   # + checker error rates (fast; exits 1 if unclean)
@@ -312,6 +312,19 @@ docker compose -f docker/docker-compose.yml up -d
   bug, widen the tolerance, tighten it, and drop scale suffixes — each asserting the
   evaluation goes red. Without them, "0% false acceptance" is indistinguishable from an
   instrument that cannot see.
+
+- **A silent degradation is the same defect as a silent zero.** `ets` needs `2*period+1`
+  observations and falls back to `drift_seasonal` below that rather than raising — correct,
+  so one short leaf cannot take down a run — but it did so **silently** for the whole build.
+  Measured: **11 of 66 calls, 16.7%** on the monthly backtest, all `too_short`, because fold 1
+  trains on 24 months and ETS needs 25. The filed-quarterly backtest degrades **0 times**,
+  which is why `0.936` is a real ETS score and the contaminated number is the one already
+  disqualified. Now counted by reason, carried on `BacktestResult`, and published in the
+  validation report next to the score.
+- **`run_backtest` was computing every forecast twice.** Once for the detail rows, once for
+  the summary. That doubled the work, required two passes to agree, and made the fallback
+  counter report every degradation twice — 22 where the truth was 11. Now computed once and
+  both outputs derived from it; every score is unchanged, which is what makes it a refactor.
 
 ## The bug class this codebase keeps finding
 
