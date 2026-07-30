@@ -6,6 +6,7 @@
 > structurally incapable of producing a number.
 
 <p align="left">
+  <a href="https://github.com/godot107/auditable-fpa-forecast/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/godot107/auditable-fpa-forecast/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://auditable-fpa-forecastgit-vxpjph3wlgbr89rvakodg5.streamlit.app/"><img alt="Live Demo" src="https://img.shields.io/badge/Live_Demo-Streamlit_Cloud-FF4B4B?logo=streamlit&logoColor=white"></a>
   <img alt="Python"    src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white">
   <img alt="Streamlit" src="https://img.shields.io/badge/Streamlit-UI-FF4B4B?logo=streamlit&logoColor=white">
