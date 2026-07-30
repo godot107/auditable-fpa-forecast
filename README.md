@@ -12,7 +12,7 @@
   <img alt="Odoo"      src="https://img.shields.io/badge/Odoo-18.0-714B67?logo=odoo&logoColor=white">
   <img alt="NumPyro"   src="https://img.shields.io/badge/NumPyro-NUTS-EE4C2C">
   <img alt="Controls"  src="https://img.shields.io/badge/controls-23_(21_blocking)-2e7d32">
-  <img alt="Tests"     src="https://img.shields.io/badge/tests-146-2e7d32">
+  <img alt="Tests"     src="https://img.shields.io/badge/tests-158-2e7d32">
   <img alt="License"   src="https://img.shields.io/badge/license-MIT-blue">
 </p>
 
@@ -50,7 +50,7 @@ SEC EDGAR XBRL ──> three statements ──> disaggregation ──> Odoo (pos
 | Forecast vs seasonal-naive | MASE **0.936** on filed quarters — beats it by 6%, loses on 4 series |
 | Interval calibration | **provisional** — 8 of 9 backtest fits do not converge; see below |
 | Groundedness checker | **0% false acceptance, 100% parse coverage** over 364 cases |
-| Controls / tests | **23 controls** (21 blocking), **146 tests** |
+| Controls / tests | **23 controls** (21 blocking), **158 tests** |
 
 **Status:** built and verified end to end. `python -m fpa` exits 0 with 21/23 controls passing
 and zero blocking failures; the two open items are `WARN` and structural.
@@ -95,7 +95,7 @@ constraint rather than around the model:
 | Budget-vs-actual variance bridge (spend / mix decomposition) | Built |
 | Grounded LLM commentary, human-in-the-loop, append-only audit log | Built |
 | Measured checker error rates — false acceptance, false rejection, parse coverage | Built |
-| Test suite (146 tests) | Built |
+| Test suite (158 tests) | Built |
 | Bayesian posterior-predictive intervals (NumPyro), scored on coverage **and** sharpness | Built (opt-in) |
 
 ---
@@ -159,6 +159,36 @@ What MASE does not do is assess an *interval*. That is why the posterior layer i
 coverage **and** pinball loss instead: a model predicting ±$10B every month is perfectly
 calibrated and perfectly useless (McElreath 2e, p.223).
 
+**And MASE systematically flatters a trending stock over a noisy flow.** The denominator is
+`mean |y_t − y_{t−4}|` — the average annual increment. For a balance-sheet balance that grows
+steadily, that increment is large, so MASE comes out small. For a stationary, lumpy cash-flow
+line the increment is small, so MASE blows up. Measured across filed series at a 4-quarter
+horizon:
+
+| series | statement | MASE | |
+|---|---|---|---|
+| `revenue` | P&L | **0.343** | beats naive |
+| `equity` | balance sheet | 0.548 | beats naive |
+| `assets` | balance sheet | 0.683 | beats naive |
+| `operating_income` | P&L | 1.160 | loses |
+| `cash_from_operations` | cash flow | 2.492 | loses |
+| `free_cash_flow` | cash flow | **7.571** | loses badly |
+
+That spread is **not purely model quality**. Balance-sheet stocks are cumulative, so they
+trend, and seasonal-naive is a weak benchmark for a trending series — beating it on `assets`
+says more about the benchmark than the forecast. Cash flows are differences of large lumpy
+series, so they are punished twice: hard to predict *and* scored against a small denominator.
+
+The practical consequences, both acted on rather than noted:
+
+- **Free cash flow is not forecast anywhere in this project.** At 7.571 it is seven times worse
+  than doing nothing, and reporting *that* is more useful to a CFO than a number would be.
+- **Balance-sheet lines are never forecast independently.** `A = L + E` holds to $0.00 across
+  26 actual quarters and a blocking control proves it; seventeen lines projected separately
+  would not balance at any future date. The balance sheet is **derived** from a forecast P&L
+  and working-capital ratios, and the forecast is held to the same articulation controls as the
+  actuals.
+
 **And 0.936 is a selected maximum, not an unbiased estimate.** Three models are scored on
 the same rolling-origin backtest and the winner is the one quoted. Picking the best from the
 evaluation you then publish inflates it — the same reason López de Prado insists a backtest is
@@ -176,6 +206,49 @@ the selection is visible rather than implied.
 numbers, so proportionally modest errors in revenue and cost compound into a large error in
 the residual. That is the argument for forecasting the components and letting the margin fall
 out — not forecasting the margin directly.
+
+### Three-statement forecast — one series forecast, the rest derived
+
+The claim *"forecast the components and let the margin fall out"* sat in this README for
+weeks with nothing implementing it: `operating_income` was extrapolated directly like any
+other line, and it was the worst row in the backtest. `fpa/forecast/statements.py` implements
+it, so it can be **tested**:
+
+```
+revenue            ETS on filed quarterly data — MASE 0.343, the one series that works
+  └─ expenses      trailing 4-quarter cost ratios x forecast revenue
+       └─ EBIT     DERIVED as revenue - expenses, never forecast
+            └─ net income        effective tax rate on derived pretax
+                 └─ balance sheet    retained-earnings roll + working-capital days,
+                                     cash as the plug that closes A = L + E
+```
+
+| approach | mean MASE on `operating_income` |
+|---|---|
+| revenue-driven, EBIT derived | **1.240** |
+| EBIT extrapolated directly | 1.308 |
+
+**Derivation wins by 5.2% — and both lose to seasonal-naive.** Every value is above 1.0, so
+deriving operating income is the better of two methods that should not be used for guidance.
+The advice was directionally right and insufficient, which is a more useful result than a
+vindication would have been.
+
+Identical rolling-origin folds, identical horizon, identical model for the driver. The only
+difference is where operating income comes from.
+
+**The forecast articulates.** Worst `|A − (L+E)|` across the forecast quarters is **$0.00** —
+the identity a blocking control proves on 26 actual quarters is not broken by the projection.
+Every input is filed: no cost center, no invented granularity.
+
+**Cash as the plug makes the identity untestable, so the plug gets its own diagnostic.**
+`plug_plausibility()` rebuilds the change in cash from net income, non-cash charges, capex and
+buybacks, and reports the gap. It exists because it caught a real defect: an earlier version
+read `quarterly` instead of the balance-sheet frame and guarded each line with
+`if column in history.columns`, so `treasury_stock` — a **−$28B** derived residual — was
+silently skipped. Equity compounded with no contra-equity and the plug absorbed the error,
+forecasting **$84B of cash against an actual $9B**. Fourth instance of this codebase's
+signature defect, and the only reason it was visible is that the plug produced an absurd
+number rather than a merely wrong one. The lines are now required and a missing one raises.
 
 ### What "bottom-up" means here, and what it does not
 
@@ -335,7 +408,7 @@ Without those, "0% false acceptance" is indistinguishable from an instrument tha
 that needs ~50 real drafts adjudicated by hand — a model writing "roughly six hundred
 million" in words would defeat every regex here, and nothing in this corpus would notice.
 
-**A test suite that only passes proves nothing.** A dozen of the 146 tests deliberately corrupt
+**A test suite that only passes proves nothing.** A dozen of the 158 tests deliberately corrupt
 the data and assert the control catches it — an unbalanced balance sheet, a double-counted
 line, a negative content-asset balance, a broken cash roll-forward, a share count misread as
 dollars, a double-counted region, a forecast split that no longer ties. One asserts pinball
@@ -704,7 +777,7 @@ python -m venv .venv && .venv/bin/pip install -r requirements.txt
 cp .env.example .env          # set EDGAR_USER_AGENT to "Your Name your@email"
 
 .venv/bin/python -m fpa       # ingest -> controls -> forecast; prints the control report
-.venv/bin/python -m pytest    # 146 tests
+.venv/bin/python -m pytest    # 158 tests
 .venv/bin/streamlit run app/Home.py
 ```
 
@@ -872,7 +945,7 @@ app/                 Streamlit: Overview, Controls, Forecast, Variance, Commenta
 sql/                 Extract queries as first-class artifacts
 reports/             Generated calibration report (--intervals)
 docker/              Odoo 18 + Postgres, OCA addons, fetch script
-tests/               146 tests, including tests that validate the validators
+tests/               158 tests, including tests that validate the validators
 data/                Pinned vintages + posterior + ERP proof (committed, ~1.8 MB)
 ```
 

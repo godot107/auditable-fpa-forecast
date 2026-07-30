@@ -56,6 +56,10 @@ class PipelineResult:
     forecast: pd.DataFrame | None = None
     backtest_monthly: BacktestResult | None = None
     backtest_filed: BacktestResult | None = None
+    # The three-statement forecast: revenue is forecast, everything else derived.
+    forecast_income: pd.DataFrame | None = None
+    forecast_balance: pd.DataFrame | None = None
+    derived_vs_direct: pd.DataFrame | None = None
     metadata: dict = field(default_factory=dict)
 
     @property
@@ -219,4 +223,28 @@ def run(
     result.backtest_filed = run_backtest(
         filed_frame, horizon=horizon_quarters, folds=4, period=4
     )
+
+    # Three-statement forecast. Only revenue is forecast; expenses are driven off it,
+    # operating income is the residual, and the balance sheet is derived with cash as the
+    # plug. Wrapped because a driver ratio that cannot be computed must not take down a run
+    # whose other outputs are fine.
+    try:
+        from fpa.forecast.statements import (
+            compare_derived_vs_direct,
+            forecast_balance_sheet,
+            forecast_income_statement,
+        )
+
+        result.forecast_income = forecast_income_statement(
+            context.quarterly, horizon_quarters
+        )
+        result.forecast_balance = forecast_balance_sheet(
+            context.balance_sheet, context.quarterly, result.forecast_income
+        )
+        result.derived_vs_direct = compare_derived_vs_direct(
+            context.quarterly, horizon=horizon_quarters
+        )
+    except Exception as exc:  # noqa: BLE001 - additive layer, must not gate the run
+        logger.warning("three-statement forecast unavailable: %s", exc)
+
     return result

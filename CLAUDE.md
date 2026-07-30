@@ -18,7 +18,7 @@ cp .env.example .env                     # set EDGAR_USER_AGENT
 
 .venv/bin/python -m fpa                  # ingest -> controls -> forecast
 .venv/bin/python -m fpa --refresh        # re-pull EDGAR instead of the pinned vintage
-.venv/bin/python -m pytest               # 146 tests (pytest.ini scopes to tests/)
+.venv/bin/python -m pytest               # 158 tests (pytest.ini scopes to tests/)
 .venv/bin/pip install -r requirements-bayes.txt   # optional: NumPyro + JAX
 .venv/bin/python -m fpa.forecast.posterior        # fit + pin the posterior (~1 MB, committed)
 .venv/bin/python -m fpa --groundedness   # + checker error rates (fast; exits 1 if unclean)
@@ -46,6 +46,7 @@ docker compose -f docker/docker-compose.yml up -d
 | `fpa/ledger/` | Disaggregation (foots to filed), budget, Odoo seeder | Built |
 | `fpa/controls/checks.py` | 23 controls, 21 blocking, registry + gate | Built |
 | `fpa/forecast/` | Seasonal-naive benchmark, ETS, rolling-origin backtest | Built |
+| `fpa/forecast/statements.py` | Three-statement forecast: revenue forecast, rest derived | Built |
 | `fpa/extract/odoo_sql.py` | SQL extract -> pinned Parquet | Built |
 | `fpa/variance/bridge.py` | Spend/mix decomposition, ties by construction | Built |
 | `fpa/narrative/` | Facts payload, providers, groundedness, draft gate | Built |
@@ -90,6 +91,28 @@ docker compose -f docker/docker-compose.yml up -d
 - **MASE, not MAPE.** MAPE is dominated by small denominators, so at cost-center
   granularity a small department outweighs Content (Phillips, *Pricing & Revenue
   Optimization* 2e, p.94).
+- **MASE flatters a trending stock and punishes a lumpy flow.** The denominator is the
+  average annual increment, which is large for a cumulative balance and small for a
+  stationary flow. Measured: `assets` 0.683 and `equity` 0.548 "beat" naive while
+  `free_cash_flow` scores **7.571**. That spread is partly the benchmark, not the model —
+  seasonal-naive is weak on anything that trends. Two consequences, both acted on: FCF is
+  **not forecast anywhere**, and balance-sheet lines are never forecast independently.
+- **Only revenue is forecast; the rest of the statements are derived.** The advice to
+  "forecast the drivers and let the margin fall out" was in the README for weeks with
+  nothing implementing it. `fpa/forecast/statements.py` does: cost ratios × forecast
+  revenue → expenses, `operating_income` as the residual, balance sheet from a
+  retained-earnings roll plus working-capital days, cash as the plug.
+  `compare_derived_vs_direct` scores it on identical folds — **derived 1.240 vs direct
+  1.308**. Derivation wins by 5.2% *and both lose to seasonal-naive*, which is the more
+  useful result: the advice was directionally right and insufficient.
+- **A cash plug makes the identity untestable, so the plug needs a diagnostic.**
+  `plug_plausibility` rebuilds the change in cash from net income, non-cash charges, capex
+  and buybacks and reports the gap. It earned its place immediately: the first version of
+  `forecast_balance_sheet` read `quarterly` rather than the balance-sheet frame and guarded
+  each line with `if column in history.columns`, so `treasury_stock` — a **−$28B** derived
+  residual absent from `quarterly` — was silently skipped. Equity compounded with no
+  contra-equity and the plug absorbed it: **$84B of forecast cash against an actual $9B.**
+  Fourth instance of the bug class. Lines are now required; a missing one raises.
 - **Two backtests, and the honest one leads.** The monthly ledger is disaggregated by
   this project, so a model scores 0.632 on it and only 0.936 on filed quarters. The gap
   is the artifact, measured rather than assumed.
