@@ -464,11 +464,16 @@ class Settings:
     # ~85 MB, so this is a deliberate, declared cost rather than "fetch
     # everything". Ordered oldest-first: the dedupe keeps the last occurrence of a
     # period, which is the most recently filed restatement of it.
-    segment_quarters: tuple[tuple[int, int], ...] = (
-        (2024, 1),
-        (2025, 1),
-        (2025, 3),
-        (2026, 1),
+    # 24 archives, ~85 MB each, and that is a deliberate declared cost rather than "fetch
+    # everything". Four was enough while only the *annual* regional split was used — 10-Ks
+    # carry it — but a quarterly series needs the 10-Qs, and each 10-Q appears only in the
+    # archive for the quarter it was filed in. Four archives gave 5 annual observations,
+    # which cannot be backtested; 24 give 21 filed quarters plus 7 derived Q4s.
+    segment_quarters: tuple[tuple[int, int], ...] = tuple(
+        (year, quarter)
+        for year in range(2020, 2027)
+        for quarter in (1, 2, 3, 4)
+        if (2020, 2) <= (year, quarter) <= (2026, 1)
     )
 
     # --- Odoo (seeding only; the app reads the materialized extract) ------

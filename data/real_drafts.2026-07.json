@@ -1,0 +1,1970 @@
+[
+  {
+    "periods": 3,
+    "draft": {
+      "drivers": [
+        {
+          "cost_center": "Content / Original Productions",
+          "comment": "$153.1M over budget (9.22%). spend_effect of $111.3M shows overall spend on this center rose, and mix_effect of $41.8M shows its budget share also grew relative to other centers \u2014 both pushed the same direction."
+        },
+        {
+          "cost_center": "Technology & Product / Cloud Infrastructure",
+          "comment": "$150.4M over budget, the largest percentage miss at 22.5%. mix_effect of $105.6M dwarfs spend_effect of $44.8M, so most of the overage is budget share shifting toward Cloud Infrastructure rather than total tech spend growing."
+        },
+        {
+          "cost_center": "Technology & Product / CDN & Delivery",
+          "comment": "$57.3M over budget (7.89%). spend_effect of $48.7M is the primary driver versus mix_effect of $8.7M, so this overage is mostly from higher total spend, not a share shift."
+        }
+      ],
+      "headline": "Total spend was $525.49M over budget (6.7% unfavourable) for the period, concentrated in Content and Technology & Product cost centers.",
+      "watch_item": "Pipeline health shows 2 controls failed (0 blocking) and the forecast has 4 series losing to the naive benchmark (MASE 0.9357) \u2014 worth confirming data quality behind these figures."
+    },
+    "facts": {
+      "entity": {
+        "ticker": "NFLX"
+      },
+      "variance": {
+        "period_start": "2026-04-30",
+        "period_end": "2026-06-30",
+        "n_periods": 3,
+        "total_actual": 8367328000.0,
+        "total_budget": 7841836096.85,
+        "total_variance": 525491903.15,
+        "total_variance_pct": 0.067,
+        "largest_unfavourable": [
+          {
+            "cost_center": "Content / Original Productions",
+            "actual": 1813660831.15,
+            "budget": 1660538487.19,
+            "variance": 153122343.97,
+            "variance_pct": 0.0922,
+            "spend_effect": 111274900.31,
+            "mix_effect": 41847443.66,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / Cloud Infrastructure",
+            "actual": 818677949.45,
+            "budget": 668282989.44,
+            "variance": 150394960.01,
+            "variance_pct": 0.225,
+            "spend_effect": 44782535.06,
+            "mix_effect": 105612424.94,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / CDN & Delivery",
+            "actual": 783696683.57,
+            "budget": 726367725.09,
+            "variance": 57328958.48,
+            "variance_pct": 0.0789,
+            "spend_effect": 48674870.72,
+            "mix_effect": 8654087.76,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / Platform Engineering",
+            "actual": 668731601.66,
+            "budget": 614557713.84,
+            "variance": 54173887.82,
+            "variance_pct": 0.0882,
+            "spend_effect": 41182332.64,
+            "mix_effect": 12991555.18,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Content / Licensed Content",
+            "actual": 2959872934.17,
+            "budget": 2919824421.16,
+            "variance": 40048513.01,
+            "variance_pct": 0.0137,
+            "spend_effect": 195661331.48,
+            "mix_effect": -155612818.47,
+            "favourability": "unfavourable"
+          }
+        ],
+        "largest_favourable": [
+          {
+            "cost_center": "G&A / Facilities",
+            "actual": 112180390.12,
+            "budget": 110243928.55,
+            "variance": 1936461.57,
+            "variance_pct": 0.0176,
+            "spend_effect": 7387592.79,
+            "mix_effect": -5451131.23,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "G&A / Corporate Functions",
+            "actual": 386669609.88,
+            "budget": 371683588.08,
+            "variance": 14986021.8,
+            "variance_pct": 0.0403,
+            "spend_effect": 24907013.31,
+            "mix_effect": -9920991.51,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Performance Marketing",
+            "actual": 313147047.58,
+            "budget": 286564648.05,
+            "variance": 26582399.52,
+            "variance_pct": 0.0928,
+            "spend_effect": 19203079.54,
+            "mix_effect": 7379319.99,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Brand & Media",
+            "actual": 510690952.42,
+            "budget": 483772595.45,
+            "variance": 26918356.98,
+            "variance_pct": 0.0556,
+            "spend_effect": 32418247.3,
+            "mix_effect": -5499890.32,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Content / Licensed Content",
+            "actual": 2959872934.17,
+            "budget": 2919824421.16,
+            "variance": 40048513.01,
+            "variance_pct": 0.0137,
+            "spend_effect": 195661331.48,
+            "mix_effect": -155612818.47,
+            "favourability": "unfavourable"
+          }
+        ]
+      },
+      "revenue": {
+        "actual_revenue": 12559938000.0,
+        "planned_revenue": 12499251407.31,
+        "variance": 60686592.69,
+        "variance_pct": 0.0049,
+        "favourability": "favourable",
+        "avg_members": 317918213.0,
+        "actual_arpu": 13.1689,
+        "planned_arpu": 13.1053,
+        "volume_effect": 0.0,
+        "rate_effect": 60686592.69,
+        "n_periods": 3,
+        "basis": "No member plan is filed or modeled, so volume cannot be varied against plan; the full variance is attributed to rate. Volume effect is reported as zero because it was not measured, not because it was zero."
+      },
+      "pipeline_health": {
+        "control_pass_rate": 0.913,
+        "controls_failed": 2,
+        "blocking_failures": 0
+      },
+      "forecast_quality": {
+        "model": "ets",
+        "mase_filed_quarterly": 0.9357,
+        "series_losing_to_naive": 4,
+        "basis": "MASE is scaled by the in-sample seasonal-naive error: below 1.0 beats the benchmark, above 1.0 loses to it."
+      }
+    }
+  },
+  {
+    "periods": 4,
+    "draft": {
+      "drivers": [
+        {
+          "cost_center": "Technology & Product / Cloud Infrastructure",
+          "comment": "Unfavourable by $193.3M (21.4%). Mix effect ($137.1M) was more than double the spend effect ($56.2M), so the overspend was driven mainly by Cloud Infrastructure taking a larger share of total budget, not by total spend rising."
+        },
+        {
+          "cost_center": "Content / Original Productions",
+          "comment": "Unfavourable by $175.9M (7.8%). Spend effect ($140.7M) dominated mix effect ($35.1M), so this variance was driven mainly by higher total spend rather than a shift in budget share toward this cost center."
+        },
+        {
+          "cost_center": "Technology & Product / CDN & Delivery",
+          "comment": "Unfavourable by $63.3M (6.4%), almost entirely spend effect ($61.6M) with minimal mix effect ($1.8M) \u2014 overall spend growth, not reallocation, explains this variance."
+        }
+      ],
+      "headline": "Total cost variance was $661.1M (6.2%) unfavourable for the period, driven mainly by Technology & Product overspend, even as revenue came in $105.6M favourable on rate.",
+      "watch_item": "Cloud Infrastructure's mix effect ($137.1M) far exceeds its spend effect ($56.2M) \u2014 budget share is shifting toward this cost center faster than overall spend is growing."
+    },
+    "facts": {
+      "entity": {
+        "ticker": "NFLX"
+      },
+      "variance": {
+        "period_start": "2026-03-31",
+        "period_end": "2026-06-30",
+        "n_periods": 4,
+        "total_actual": 11289783979.45,
+        "total_budget": 10628717439.39,
+        "total_variance": 661066540.06,
+        "total_variance_pct": 0.0622,
+        "largest_unfavourable": [
+          {
+            "cost_center": "Technology & Product / Cloud Infrastructure",
+            "actual": 1097471188.33,
+            "budget": 904162976.18,
+            "variance": 193308212.15,
+            "variance_pct": 0.2138,
+            "spend_effect": 56235561.23,
+            "mix_effect": 137072650.92,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Content / Original Productions",
+            "actual": 2438668992.87,
+            "budget": 2262817849.36,
+            "variance": 175851143.51,
+            "variance_pct": 0.0777,
+            "spend_effect": 140738821.5,
+            "mix_effect": 35112322.01,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / CDN & Delivery",
+            "actual": 1053210839.31,
+            "budget": 989881930.39,
+            "variance": 63328908.92,
+            "variance_pct": 0.064,
+            "spend_effect": 61566960.13,
+            "mix_effect": 1761948.8,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / Platform Engineering",
+            "actual": 893785254.81,
+            "budget": 836308448.28,
+            "variance": 57476806.53,
+            "variance_pct": 0.0687,
+            "spend_effect": 52015262.94,
+            "mix_effect": 5461543.59,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "G&A / Corporate Functions",
+            "actual": 550967221.7,
+            "budget": 499873946.57,
+            "variance": 51093275.13,
+            "variance_pct": 0.1022,
+            "spend_effect": 31090293.09,
+            "mix_effect": 20002982.04,
+            "favourability": "unfavourable"
+          }
+        ],
+        "largest_favourable": [
+          {
+            "cost_center": "G&A / Facilities",
+            "actual": 160248537.75,
+            "budget": 150341816.7,
+            "variance": 9906721.05,
+            "variance_pct": 0.0659,
+            "spend_effect": 9350699.66,
+            "mix_effect": 556021.39,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Content / Licensed Content",
+            "actual": 3974787802.01,
+            "budget": 3948995561.12,
+            "variance": 25792240.89,
+            "variance_pct": 0.0065,
+            "spend_effect": 245612779.45,
+            "mix_effect": -219820538.56,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Performance Marketing",
+            "actual": 426479487.07,
+            "budget": 385944888.76,
+            "variance": 40534598.31,
+            "variance_pct": 0.105,
+            "spend_effect": 24004331.07,
+            "mix_effect": 16530267.24,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Brand & Media",
+            "actual": 694164655.59,
+            "budget": 650390022.03,
+            "variance": 43774633.56,
+            "variance_pct": 0.0673,
+            "spend_effect": 40451831.0,
+            "mix_effect": 3322802.57,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "G&A / Corporate Functions",
+            "actual": 550967221.7,
+            "budget": 499873946.57,
+            "variance": 51093275.13,
+            "variance_pct": 0.1022,
+            "spend_effect": 31090293.09,
+            "mix_effect": 20002982.04,
+            "favourability": "unfavourable"
+          }
+        ]
+      },
+      "revenue": {
+        "actual_revenue": 16670529440.08,
+        "planned_revenue": 16564978791.47,
+        "variance": 105550648.6,
+        "variance_pct": 0.0064,
+        "favourability": "favourable",
+        "avg_members": 317085792.0,
+        "actual_arpu": 13.1435,
+        "planned_arpu": 13.0603,
+        "volume_effect": 0.0,
+        "rate_effect": 105550648.6,
+        "n_periods": 4,
+        "basis": "No member plan is filed or modeled, so volume cannot be varied against plan; the full variance is attributed to rate. Volume effect is reported as zero because it was not measured, not because it was zero."
+      },
+      "pipeline_health": {
+        "control_pass_rate": 0.913,
+        "controls_failed": 2,
+        "blocking_failures": 0
+      },
+      "forecast_quality": {
+        "model": "ets",
+        "mase_filed_quarterly": 0.9357,
+        "series_losing_to_naive": 4,
+        "basis": "MASE is scaled by the in-sample seasonal-naive error: below 1.0 beats the benchmark, above 1.0 loses to it."
+      }
+    }
+  },
+  {
+    "periods": 5,
+    "draft": {
+      "drivers": [
+        {
+          "cost_center": "Technology & Product / Cloud Infrastructure",
+          "comment": "Unfavourable variance of $239,811,542.42 (21.35% over budget). Only $72,157,489.38 of this came from total spend moving; $167,654,053.05 came from mix \u2014 this cost center absorbed a larger share of the budget than planned."
+        },
+        {
+          "cost_center": "Content / Original Productions",
+          "comment": "Unfavourable variance of $220,809,738.60 (7.85% over budget). Driven mainly by spend_effect of $180,721,615.19 (overall spend growth), with a smaller mix_effect of $40,088,123.41."
+        },
+        {
+          "cost_center": "G&A / Corporate Functions",
+          "comment": "Unfavourable variance of $91,366,852.40 (14.83% over budget). Mix_effect of $51,787,132.30 slightly exceeds spend_effect of $39,579,720.10, indicating this function took a larger budget share than planned rather than total spend simply rising."
+        }
+      ],
+      "headline": "Total spend was $849,516,985.72 over budget (6.42% unfavourable variance), led by Cloud Infrastructure and Content / Original Productions.",
+      "watch_item": "Cloud Infrastructure's variance is mostly mix_effect ($167,654,053.05 vs. $72,157,489.38 spend_effect) \u2014 budget share is shifting here faster than total spend is growing."
+    },
+    "facts": {
+      "entity": {
+        "ticker": "NFLX"
+      },
+      "variance": {
+        "period_start": "2026-02-28",
+        "period_end": "2026-06-30",
+        "n_periods": 5,
+        "total_actual": 14075419167.13,
+        "total_budget": 13225902181.41,
+        "total_variance": 849516985.72,
+        "total_variance_pct": 0.0642,
+        "largest_unfavourable": [
+          {
+            "cost_center": "Technology & Product / Cloud Infrastructure",
+            "actual": 1363212147.91,
+            "budget": 1123400605.49,
+            "variance": 239811542.42,
+            "variance_pct": 0.2135,
+            "spend_effect": 72157489.38,
+            "mix_effect": 167654053.05,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Content / Original Productions",
+            "actual": 3034416111.09,
+            "budget": 2813606372.49,
+            "variance": 220809738.6,
+            "variance_pct": 0.0785,
+            "spend_effect": 180721615.19,
+            "mix_effect": 40088123.41,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "G&A / Corporate Functions",
+            "actual": 707572902.66,
+            "budget": 616206050.26,
+            "variance": 91366852.4,
+            "variance_pct": 0.1483,
+            "spend_effect": 39579720.1,
+            "mix_effect": 51787132.3,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / CDN & Delivery",
+            "actual": 1310107135.14,
+            "budget": 1227207314.86,
+            "variance": 82899820.28,
+            "variance_pct": 0.0676,
+            "spend_effect": 78825130.01,
+            "mix_effect": 4074690.27,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Brand & Media",
+            "actual": 869048659.72,
+            "budget": 806968851.45,
+            "variance": 62079808.27,
+            "variance_pct": 0.0769,
+            "spend_effect": 51832664.18,
+            "mix_effect": 10247144.09,
+            "favourability": "unfavourable"
+          }
+        ],
+        "largest_favourable": [
+          {
+            "cost_center": "Content / Licensed Content",
+            "actual": 4942187341.38,
+            "budget": 4926985518.68,
+            "variance": 15201822.7,
+            "variance_pct": 0.0031,
+            "spend_effect": 316466720.31,
+            "mix_effect": -301264897.61,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "G&A / Facilities",
+            "actual": 206066276.11,
+            "budget": 186075138.57,
+            "variance": 19991137.54,
+            "variance_pct": 0.1074,
+            "spend_effect": 11951849.38,
+            "mix_effect": 8039288.16,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Performance Marketing",
+            "actual": 534506035.15,
+            "budget": 479189432.49,
+            "variance": 55316602.66,
+            "variance_pct": 0.1154,
+            "spend_effect": 30778963.63,
+            "mix_effect": 24537639.03,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / Platform Engineering",
+            "actual": 1108302557.98,
+            "budget": 1046262897.13,
+            "variance": 62039660.85,
+            "variance_pct": 0.0593,
+            "spend_effect": 67202833.53,
+            "mix_effect": -5163172.69,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Brand & Media",
+            "actual": 869048659.72,
+            "budget": 806968851.45,
+            "variance": 62079808.27,
+            "variance_pct": 0.0769,
+            "spend_effect": 51832664.18,
+            "mix_effect": 10247144.09,
+            "favourability": "unfavourable"
+          }
+        ]
+      },
+      "revenue": {
+        "actual_revenue": 20726457534.19,
+        "planned_revenue": 20384774219.14,
+        "variance": 341683315.05,
+        "variance_pct": 0.0168,
+        "favourability": "favourable",
+        "avg_members": 316205320.0,
+        "actual_arpu": 13.1095,
+        "planned_arpu": 12.8934,
+        "volume_effect": 0.0,
+        "rate_effect": 341683315.05,
+        "n_periods": 5,
+        "basis": "No member plan is filed or modeled, so volume cannot be varied against plan; the full variance is attributed to rate. Volume effect is reported as zero because it was not measured, not because it was zero."
+      },
+      "pipeline_health": {
+        "control_pass_rate": 0.913,
+        "controls_failed": 2,
+        "blocking_failures": 0
+      },
+      "forecast_quality": {
+        "model": "ets",
+        "mase_filed_quarterly": 0.9357,
+        "series_losing_to_naive": 4,
+        "basis": "MASE is scaled by the in-sample seasonal-naive error: below 1.0 beats the benchmark, above 1.0 loses to it."
+      }
+    }
+  },
+  {
+    "periods": 6,
+    "draft": {
+      "headline": "Costs ran $1,057,977,731.58 unfavourable (6.78% over budget) for the six periods ended 2026-06-30; revenue was favourable $273,054,214.51 (1.11%), entirely a rate/ARPU effect.",
+      "drivers": [
+        {
+          "cost_center": "Technology & Product / Cloud Infrastructure",
+          "comment": "Unfavourable by $289,222,649.90 (21.9%). Mix effect ($199,675,667.13) dwarfs spend effect ($89,546,982.77), so most of the overage came from Cloud Infrastructure taking a larger share of total budget spend rather than total spend itself rising."
+        },
+        {
+          "cost_center": "Content / Original Productions",
+          "comment": "Unfavourable by $270,944,005.32 (8.17%). Here spend effect ($224,873,927.37) dominates mix effect ($46,070,077.95) \u2014 overall spend growth, not a reallocation between cost centers, explains most of this variance."
+        },
+        {
+          "cost_center": "G&A / Corporate Functions",
+          "comment": "Unfavourable by $134,284,730.75 (18.69%). Mix effect ($85,556,817.79) exceeds spend effect ($48,727,912.96), indicating Corporate Functions absorbed a disproportionate share of total spend growth."
+        }
+      ],
+      "watch_item": "Pipeline control pass rate is 0.913 with 2 controls failed (0 blocking); forecast quality shows MASE 0.9357 on filed quarterly data but 4 series losing to the naive benchmark."
+    },
+    "facts": {
+      "entity": {
+        "ticker": "NFLX"
+      },
+      "variance": {
+        "period_start": "2026-01-31",
+        "period_end": "2026-06-30",
+        "n_periods": 6,
+        "total_actual": 16660088000.0,
+        "total_budget": 15602110268.42,
+        "total_variance": 1057977731.58,
+        "total_variance_pct": 0.0678,
+        "largest_unfavourable": [
+          {
+            "cost_center": "Technology & Product / Cloud Infrastructure",
+            "actual": 1609781540.38,
+            "budget": 1320558890.48,
+            "variance": 289222649.9,
+            "variance_pct": 0.219,
+            "spend_effect": 89546982.77,
+            "mix_effect": 199675667.13,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Content / Original Productions",
+            "actual": 3587183758.32,
+            "budget": 3316239753.0,
+            "variance": 270944005.32,
+            "variance_pct": 0.0817,
+            "spend_effect": 224873927.37,
+            "mix_effect": 46070077.95,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "G&A / Corporate Functions",
+            "actual": 852880452.05,
+            "budget": 718595721.3,
+            "variance": 134284730.75,
+            "variance_pct": 0.1869,
+            "spend_effect": 48727912.96,
+            "mix_effect": 85556817.79,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Brand & Media",
+            "actual": 1031315864.27,
+            "budget": 944319608.01,
+            "variance": 86996256.26,
+            "variance_pct": 0.0921,
+            "spend_effect": 64034229.96,
+            "mix_effect": 22962026.31,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / CDN & Delivery",
+            "actual": 1548469951.64,
+            "budget": 1461856468.09,
+            "variance": 86613483.55,
+            "variance_pct": 0.0592,
+            "spend_effect": 99128359.14,
+            "mix_effect": -12514875.59,
+            "favourability": "unfavourable"
+          }
+        ],
+        "largest_favourable": [
+          {
+            "cost_center": "Content / Licensed Content",
+            "actual": 5839794985.55,
+            "budget": 5821937432.69,
+            "variance": 17857552.86,
+            "variance_pct": 0.0031,
+            "spend_effect": 394785067.69,
+            "mix_effect": -376927514.83,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "G&A / Facilities",
+            "actual": 248578547.95,
+            "budget": 218271301.25,
+            "variance": 30307246.7,
+            "variance_pct": 0.1389,
+            "spend_effect": 14800957.83,
+            "mix_effect": 15506288.87,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / Platform Engineering",
+            "actual": 1307343764.11,
+            "budget": 1237670927.75,
+            "variance": 69672836.36,
+            "variance_pct": 0.0563,
+            "spend_effect": 83926357.27,
+            "mix_effect": -14253520.92,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Performance Marketing",
+            "actual": 634739135.73,
+            "budget": 562660165.83,
+            "variance": 72078969.89,
+            "variance_pct": 0.1281,
+            "spend_effect": 38153936.59,
+            "mix_effect": 33925033.3,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / CDN & Delivery",
+            "actual": 1548469951.64,
+            "budget": 1461856468.09,
+            "variance": 86613483.55,
+            "variance_pct": 0.0592,
+            "spend_effect": 99128359.14,
+            "mix_effect": -12514875.59,
+            "favourability": "unfavourable"
+          }
+        ]
+      },
+      "revenue": {
+        "actual_revenue": 24809695000.0,
+        "planned_revenue": 24536640785.49,
+        "variance": 273054214.51,
+        "variance_pct": 0.0111,
+        "favourability": "favourable",
+        "avg_members": 315101996.0,
+        "actual_arpu": 13.1226,
+        "planned_arpu": 12.9781,
+        "volume_effect": 0.0,
+        "rate_effect": 273054214.51,
+        "n_periods": 6,
+        "basis": "No member plan is filed or modeled, so volume cannot be varied against plan; the full variance is attributed to rate. Volume effect is reported as zero because it was not measured, not because it was zero."
+      },
+      "pipeline_health": {
+        "control_pass_rate": 0.913,
+        "controls_failed": 2,
+        "blocking_failures": 0
+      },
+      "forecast_quality": {
+        "model": "ets",
+        "mase_filed_quarterly": 0.9357,
+        "series_losing_to_naive": 4,
+        "basis": "MASE is scaled by the in-sample seasonal-naive error: below 1.0 beats the benchmark, above 1.0 loses to it."
+      }
+    }
+  },
+  {
+    "periods": 7,
+    "draft": {
+      "drivers": [
+        {
+          "cost_center": "Technology & Product / Cloud Infrastructure",
+          "comment": "Overspent budget by $337,313,452.02 (21.56%). Of this, $242,578,223.92 is a mix effect \u2014 cloud infrastructure claimed a larger share of total spend than budgeted \u2014 while only $94,735,228.10 came from overall spend growth (spend effect)."
+        },
+        {
+          "cost_center": "Content / Original Productions",
+          "comment": "Overspent budget by $251,493,076.48 (6.26%), almost entirely a spend effect: $243,506,164.61 from higher overall spend levels versus just $7,986,911.86 from a shift in budget mix."
+        },
+        {
+          "cost_center": "G&A / Corporate Functions",
+          "comment": "Overspent budget by $152,619,677.99 (17.90%), driven mostly by mix ($100,974,713.91) \u2014 a larger share of total budget flowed here than planned \u2014 with $51,644,964.08 from overall spend growth."
+        }
+      ],
+      "headline": "Total spend came in $1,131,979,409.31 over budget across the 7 periods (2025-12-31 to 2026-06-30), a 6.06% unfavourable variance.",
+      "watch_item": "Revenue's volume_effect is reported as $0.00 because no member plan exists to compare against \u2014 the full $265,435,370.57 favourable revenue variance is attributed to rate, not because volume didn't move."
+    },
+    "facts": {
+      "entity": {
+        "ticker": "NFLX"
+      },
+      "variance": {
+        "period_start": "2025-12-31",
+        "period_end": "2026-06-30",
+        "n_periods": 7,
+        "total_actual": 19822183662.29,
+        "total_budget": 18690204252.98,
+        "total_variance": 1131979409.31,
+        "total_variance_pct": 0.0606,
+        "largest_unfavourable": [
+          {
+            "cost_center": "Technology & Product / Cloud Infrastructure",
+            "actual": 1901494521.51,
+            "budget": 1564181069.49,
+            "variance": 337313452.02,
+            "variance_pct": 0.2156,
+            "spend_effect": 94735228.1,
+            "mix_effect": 242578223.92,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Content / Original Productions",
+            "actual": 4272043199.61,
+            "budget": 4020550123.13,
+            "variance": 251493076.48,
+            "variance_pct": 0.0626,
+            "spend_effect": 243506164.61,
+            "mix_effect": 7986911.86,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "G&A / Corporate Functions",
+            "actual": 1005333887.63,
+            "budget": 852714209.64,
+            "variance": 152619677.99,
+            "variance_pct": 0.179,
+            "spend_effect": 51644964.08,
+            "mix_effect": 100974713.91,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / CDN & Delivery",
+            "actual": 1836347246.34,
+            "budget": 1732229884.35,
+            "variance": 104117361.99,
+            "variance_pct": 0.0601,
+            "spend_effect": 104913169.21,
+            "mix_effect": -795807.21,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Brand & Media",
+            "actual": 1269958475.66,
+            "budget": 1175986602.48,
+            "variance": 93971873.18,
+            "variance_pct": 0.0799,
+            "spend_effect": 71224080.89,
+            "mix_effect": 22747792.29,
+            "favourability": "unfavourable"
+          }
+        ],
+        "largest_favourable": [
+          {
+            "cost_center": "Content / Licensed Content",
+            "actual": 6946342189.52,
+            "budget": 6933892081.24,
+            "variance": 12450108.29,
+            "variance_pct": 0.0018,
+            "spend_effect": 419953840.85,
+            "mix_effect": -407503732.57,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "G&A / Facilities",
+            "actual": 293554702.84,
+            "budget": 259301291.78,
+            "variance": 34253411.05,
+            "variance_pct": 0.1321,
+            "spend_effect": 15704682.47,
+            "mix_effect": 18548728.58,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / Platform Engineering",
+            "actual": 1513882598.78,
+            "budget": 1449889402.71,
+            "variance": 63993196.08,
+            "variance_pct": 0.0441,
+            "spend_effect": 87813109.34,
+            "mix_effect": -23819913.26,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Performance Marketing",
+            "actual": 783226840.4,
+            "budget": 701459588.17,
+            "variance": 81767252.23,
+            "variance_pct": 0.1166,
+            "spend_effect": 42484169.76,
+            "mix_effect": 39283082.47,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Brand & Media",
+            "actual": 1269958475.66,
+            "budget": 1175986602.48,
+            "variance": 93971873.18,
+            "variance_pct": 0.0799,
+            "spend_effect": 71224080.89,
+            "mix_effect": 22747792.29,
+            "favourability": "unfavourable"
+          }
+        ]
+      },
+      "revenue": {
+        "actual_revenue": 28816570764.46,
+        "planned_revenue": 28551135393.89,
+        "variance": 265435370.57,
+        "variance_pct": 0.0093,
+        "favourability": "favourable",
+        "avg_members": 313935963.0,
+        "actual_arpu": 13.113,
+        "planned_arpu": 12.9922,
+        "volume_effect": 0.0,
+        "rate_effect": 265435370.57,
+        "n_periods": 7,
+        "basis": "No member plan is filed or modeled, so volume cannot be varied against plan; the full variance is attributed to rate. Volume effect is reported as zero because it was not measured, not because it was zero."
+      },
+      "pipeline_health": {
+        "control_pass_rate": 0.913,
+        "controls_failed": 2,
+        "blocking_failures": 0
+      },
+      "forecast_quality": {
+        "model": "ets",
+        "mase_filed_quarterly": 0.9357,
+        "series_losing_to_naive": 4,
+        "basis": "MASE is scaled by the in-sample seasonal-naive error: below 1.0 beats the benchmark, above 1.0 loses to it."
+      }
+    }
+  },
+  {
+    "periods": 8,
+    "draft": {
+      "drivers": [
+        {
+          "cost_center": "Technology & Product / Cloud Infrastructure",
+          "comment": "Unfavourable variance of $392.0M (21.99% over budget). Only $114.5M is explained by overall spend growth (spend_effect); the remaining $277.5M (mix_effect) comes from this cost center capturing a larger share of the budget than planned \u2014 a mix shift, not just higher total spend."
+        },
+        {
+          "cost_center": "Content / Original Productions",
+          "comment": "Unfavourable variance of $305.2M (6.62% over budget), almost entirely spend-driven: $296.0M of the variance is spend_effect versus just $9.2M mix_effect. This is overall spend running hot, not a reallocation between cost centers."
+        },
+        {
+          "cost_center": "G&A / Corporate Functions",
+          "comment": "Unfavourable variance of $178.5M (18.41% over budget). Mix_effect ($116.2M) outweighs spend_effect ($62.3M), meaning G&A absorbed a bigger slice of total budget share than planned, on top of a smaller contribution from overall spend growth."
+        }
+      ],
+      "headline": "Total spend was $1,375,010,631.25 over budget (6.42%) across the 8 periods, unfavourable, with the overage concentrated in a mix shift toward Cloud Infrastructure and G&A plus straightforward overspend in Original Productions.",
+      "watch_item": "Cloud Infrastructure's mix_effect ($277.5M) is the largest single component of the variance \u2014 more than double any other line's mix or spend effect."
+    },
+    "facts": {
+      "entity": {
+        "ticker": "NFLX"
+      },
+      "variance": {
+        "period_start": "2025-11-30",
+        "period_end": "2026-06-30",
+        "n_periods": 8,
+        "total_actual": 22784246006.52,
+        "total_budget": 21409235375.27,
+        "total_variance": 1375010631.25,
+        "total_variance_pct": 0.0642,
+        "largest_unfavourable": [
+          {
+            "cost_center": "Technology & Product / Cloud Infrastructure",
+            "actual": 2174753818.19,
+            "budget": 1782740558.91,
+            "variance": 392013259.28,
+            "variance_pct": 0.2199,
+            "spend_effect": 114496719.68,
+            "mix_effect": 277516539.61,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Content / Original Productions",
+            "actual": 4913578617.51,
+            "budget": 4608373886.43,
+            "variance": 305204731.08,
+            "variance_pct": 0.0662,
+            "spend_effect": 295973348.68,
+            "mix_effect": 9231382.4,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "G&A / Corporate Functions",
+            "actual": 1148143160.03,
+            "budget": 969672752.38,
+            "variance": 178470407.65,
+            "variance_pct": 0.1841,
+            "spend_effect": 62277345.27,
+            "mix_effect": 116193062.38,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / CDN & Delivery",
+            "actual": 2106013501.09,
+            "budget": 1990558749.5,
+            "variance": 115454751.59,
+            "variance_pct": 0.058,
+            "spend_effect": 127843867.13,
+            "mix_effect": -12389115.55,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Brand & Media",
+            "actual": 1493504619.86,
+            "budget": 1383244864.73,
+            "variance": 110259755.13,
+            "variance_pct": 0.0797,
+            "spend_effect": 88839062.27,
+            "mix_effect": 21420692.86,
+            "favourability": "unfavourable"
+          }
+        ],
+        "largest_favourable": [
+          {
+            "cost_center": "G&A / Facilities",
+            "actual": 335685678.31,
+            "budget": 297305516.71,
+            "variance": 38380161.6,
+            "variance_pct": 0.1291,
+            "spend_effect": 19094481.38,
+            "mix_effect": 19285680.22,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Content / Licensed Content",
+            "actual": 7982889516.06,
+            "budget": 7914342975.58,
+            "variance": 68546540.48,
+            "variance_pct": 0.0087,
+            "spend_effect": 508299597.82,
+            "mix_effect": -439753057.34,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / Platform Engineering",
+            "actual": 1707355842.53,
+            "budget": 1632924583.13,
+            "variance": 74431259.4,
+            "variance_pct": 0.0456,
+            "spend_effect": 104874771.21,
+            "mix_effect": -30443511.81,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Performance Marketing",
+            "actual": 922321252.95,
+            "budget": 830071487.91,
+            "variance": 92249765.04,
+            "variance_pct": 0.1111,
+            "spend_effect": 53311437.82,
+            "mix_effect": 38938327.22,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Brand & Media",
+            "actual": 1493504619.86,
+            "budget": 1383244864.73,
+            "variance": 110259755.13,
+            "variance_pct": 0.0797,
+            "spend_effect": 88839062.27,
+            "mix_effect": 21420692.86,
+            "favourability": "unfavourable"
+          }
+        ]
+      },
+      "revenue": {
+        "actual_revenue": 32769359474.98,
+        "planned_revenue": 32511080842.66,
+        "variance": 258278632.32,
+        "variance_pct": 0.0079,
+        "favourability": "favourable",
+        "avg_members": 312961793.0,
+        "actual_arpu": 13.0884,
+        "planned_arpu": 12.9852,
+        "volume_effect": 0.0,
+        "rate_effect": 258278632.32,
+        "n_periods": 8,
+        "basis": "No member plan is filed or modeled, so volume cannot be varied against plan; the full variance is attributed to rate. Volume effect is reported as zero because it was not measured, not because it was zero."
+      },
+      "pipeline_health": {
+        "control_pass_rate": 0.913,
+        "controls_failed": 2,
+        "blocking_failures": 0
+      },
+      "forecast_quality": {
+        "model": "ets",
+        "mase_filed_quarterly": 0.9357,
+        "series_losing_to_naive": 4,
+        "basis": "MASE is scaled by the in-sample seasonal-naive error: below 1.0 beats the benchmark, above 1.0 loses to it."
+      }
+    }
+  },
+  {
+    "periods": 9,
+    "draft": {
+      "drivers": [
+        {
+          "cost_center": "Technology & Product / Cloud Infrastructure",
+          "comment": "Variance of $442,652,182.86 (22.07% over budget) is driven mostly by mix_effect ($315,700,987.93) rather than spend_effect ($126,951,194.92) \u2014 budget share shifted toward this cost center more than total spend grew."
+        },
+        {
+          "cost_center": "Content / Original Productions",
+          "comment": "Variance of $360,471,200.28 (6.94% over budget) is driven almost entirely by spend_effect ($328,840,420.64), with mix_effect contributing only $31,630,779.64 \u2014 this overage reflects higher total spend, not reallocation."
+        },
+        {
+          "cost_center": "G&A / Corporate Functions",
+          "comment": "Variance of $200,301,503.64 (18.36% over budget) is driven mostly by mix_effect ($131,257,833.70) versus spend_effect ($69,043,669.94), consistent with budget share shifting into this cost center."
+        }
+      ],
+      "headline": "Total cost variance is $1,532,801,266.53 unfavourable (6.33% over budget) across the 9 periods from 2025-10-31 to 2026-06-30, with the largest overages concentrated in Cloud Infrastructure, Original Productions, and Corporate Functions.",
+      "watch_item": "Cloud Infrastructure's mix_effect of $315,700,987.93 is the single largest effect in the payload \u2014 budget-share reallocation toward this cost center is outweighing its own spend growth and is worth tracking next period."
+    },
+    "facts": {
+      "entity": {
+        "ticker": "NFLX"
+      },
+      "variance": {
+        "period_start": "2025-10-31",
+        "period_end": "2026-06-30",
+        "n_periods": 9,
+        "total_actual": 25754187000.0,
+        "total_budget": 24221385733.47,
+        "total_variance": 1532801266.53,
+        "total_variance_pct": 0.0633,
+        "largest_unfavourable": [
+          {
+            "cost_center": "Technology & Product / Cloud Infrastructure",
+            "actual": 2448739944.33,
+            "budget": 2006087761.48,
+            "variance": 442652182.86,
+            "variance_pct": 0.2207,
+            "spend_effect": 126951194.92,
+            "mix_effect": 315700987.93,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Content / Original Productions",
+            "actual": 5556820425.06,
+            "budget": 5196349224.78,
+            "variance": 360471200.28,
+            "variance_pct": 0.0694,
+            "spend_effect": 328840420.64,
+            "mix_effect": 31630779.64,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "G&A / Corporate Functions",
+            "actual": 1291332284.04,
+            "budget": 1091030780.4,
+            "variance": 200301503.64,
+            "variance_pct": 0.1836,
+            "spend_effect": 69043669.94,
+            "mix_effect": 131257833.7,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Brand & Media",
+            "actual": 1717645363.86,
+            "budget": 1593256975.99,
+            "variance": 124388387.87,
+            "variance_pct": 0.0781,
+            "spend_effect": 100826036.03,
+            "mix_effect": 23562351.84,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / CDN & Delivery",
+            "actual": 2376397028.32,
+            "budget": 2253267749.01,
+            "variance": 123129279.31,
+            "variance_pct": 0.0546,
+            "spend_effect": 142593479.07,
+            "mix_effect": -19464199.75,
+            "favourability": "unfavourable"
+          }
+        ],
+        "largest_favourable": [
+          {
+            "cost_center": "G&A / Facilities",
+            "actual": 377928715.96,
+            "budget": 334498865.72,
+            "variance": 43429850.24,
+            "variance_pct": 0.1298,
+            "spend_effect": 21168082.23,
+            "mix_effect": 22261768.01,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / Platform Engineering",
+            "actual": 1901343696.58,
+            "budget": 1831976991.32,
+            "variance": 69366705.26,
+            "variance_pct": 0.0379,
+            "spend_effect": 115932947.99,
+            "mix_effect": -46566242.73,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Content / Licensed Content",
+            "actual": 9022193905.7,
+            "budget": 8951043202.31,
+            "variance": 71150703.4,
+            "variance_pct": 0.0079,
+            "spend_effect": 566448613.15,
+            "mix_effect": -495297909.75,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Performance Marketing",
+            "actual": 1061785636.14,
+            "budget": 963874182.47,
+            "variance": 97911453.67,
+            "variance_pct": 0.1016,
+            "spend_effect": 60996822.56,
+            "mix_effect": 36914631.11,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / CDN & Delivery",
+            "actual": 2376397028.32,
+            "budget": 2253267749.01,
+            "variance": 123129279.31,
+            "variance_pct": 0.0546,
+            "spend_effect": 142593479.07,
+            "mix_effect": -19464199.75,
+            "favourability": "unfavourable"
+          }
+        ]
+      },
+      "revenue": {
+        "actual_revenue": 36860457000.0,
+        "planned_revenue": 36426668970.43,
+        "variance": 433788029.57,
+        "variance_pct": 0.0119,
+        "favourability": "favourable",
+        "avg_members": 311670808.0,
+        "actual_arpu": 13.1408,
+        "planned_arpu": 12.9862,
+        "volume_effect": 0.0,
+        "rate_effect": 433788029.57,
+        "n_periods": 9,
+        "basis": "No member plan is filed or modeled, so volume cannot be varied against plan; the full variance is attributed to rate. Volume effect is reported as zero because it was not measured, not because it was zero."
+      },
+      "pipeline_health": {
+        "control_pass_rate": 0.913,
+        "controls_failed": 2,
+        "blocking_failures": 0
+      },
+      "forecast_quality": {
+        "model": "ets",
+        "mase_filed_quarterly": 0.9357,
+        "series_losing_to_naive": 4,
+        "basis": "MASE is scaled by the in-sample seasonal-naive error: below 1.0 beats the benchmark, above 1.0 loses to it."
+      }
+    }
+  },
+  {
+    "periods": 10,
+    "draft": {
+      "drivers": [
+        {
+          "cost_center": "Technology & Product / Cloud Infrastructure",
+          "comment": "Ran $502,492,857.94 over budget (22.53%). mix_effect of $341,916,954.24 outweighs spend_effect of $160,575,903.69 \u2014 most of the overage is this cost center capturing a larger share of the total budget pool than planned, not overall spend growth."
+        },
+        {
+          "cost_center": "Content / Original Productions",
+          "comment": "Ran $472,089,277.35 over budget (8.21%). spend_effect of $414,259,402.20 accounts for nearly all of it versus mix_effect of only $57,829,875.15 \u2014 this is overall spend growth, with little budget-share reallocation involved."
+        },
+        {
+          "cost_center": "G&A / Corporate Functions",
+          "comment": "Ran $207,512,313.91 over budget (17.15%). mix_effect of $120,369,226.01 exceeds spend_effect of $87,143,087.91, so more than half the overage reflects this function gaining budget share rather than total spend rising."
+        }
+      ],
+      "headline": "Total actual spend of $28,715,405,699.65 came in $1,928,649,260.12 (7.2%) over budget across the 10 periods 2025-09-30 to 2026-06-30 \u2014 an unfavourable variance.",
+      "watch_item": "Licensed Content's spend_effect ($712,170,956.47) was largely offset by mix_effect (-$505,929,926.80) \u2014 budget share is shifting away from it toward Cloud Infrastructure and G&A. Watch whether that reallocation continues."
+    },
+    "facts": {
+      "entity": {
+        "ticker": "NFLX"
+      },
+      "variance": {
+        "period_start": "2025-09-30",
+        "period_end": "2026-06-30",
+        "n_periods": 10,
+        "total_actual": 28715405699.65,
+        "total_budget": 26786756439.53,
+        "total_variance": 1928649260.12,
+        "total_variance_pct": 0.072,
+        "largest_unfavourable": [
+          {
+            "cost_center": "Technology & Product / Cloud Infrastructure",
+            "actual": 2732710508.83,
+            "budget": 2230217650.89,
+            "variance": 502492857.94,
+            "variance_pct": 0.2253,
+            "spend_effect": 160575903.69,
+            "mix_effect": 341916954.24,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Content / Original Productions",
+            "actual": 6225683743.11,
+            "budget": 5753594465.77,
+            "variance": 472089277.35,
+            "variance_pct": 0.0821,
+            "spend_effect": 414259402.2,
+            "mix_effect": 57829875.15,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "G&A / Corporate Functions",
+            "actual": 1417831224.38,
+            "budget": 1210318910.46,
+            "variance": 207512313.91,
+            "variance_pct": 0.1715,
+            "spend_effect": 87143087.91,
+            "mix_effect": 120369226.01,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Content / Licensed Content",
+            "actual": 10097489971.96,
+            "budget": 9891248942.29,
+            "variance": 206241029.67,
+            "variance_pct": 0.0209,
+            "spend_effect": 712170956.47,
+            "mix_effect": -505929926.8,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / CDN & Delivery",
+            "actual": 2658896122.09,
+            "budget": 2507287395.3,
+            "variance": 151608726.79,
+            "variance_pct": 0.0605,
+            "spend_effect": 180524954.22,
+            "mix_effect": -28916227.42,
+            "favourability": "unfavourable"
+          }
+        ],
+        "largest_favourable": [
+          {
+            "cost_center": "G&A / Facilities",
+            "actual": 415557588.83,
+            "budget": 370600542.91,
+            "variance": 44957045.91,
+            "variance_pct": 0.1213,
+            "spend_effect": 26683277.78,
+            "mix_effect": 18273768.13,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / Platform Engineering",
+            "actual": 2105988238.54,
+            "budget": 2035597744.51,
+            "variance": 70390494.03,
+            "variance_pct": 0.0346,
+            "spend_effect": 146563250.12,
+            "mix_effect": -76172756.09,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Performance Marketing",
+            "actual": 1170360788.55,
+            "budget": 1046256099.68,
+            "variance": 124104688.87,
+            "variance_pct": 0.1186,
+            "spend_effect": 75330548.4,
+            "mix_effect": 48774140.46,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Brand & Media",
+            "actual": 1890887513.36,
+            "budget": 1741634687.71,
+            "variance": 149252825.65,
+            "variance_pct": 0.0857,
+            "spend_effect": 125397879.34,
+            "mix_effect": 23854946.32,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / CDN & Delivery",
+            "actual": 2658896122.09,
+            "budget": 2507287395.3,
+            "variance": 151608726.79,
+            "variance_pct": 0.0605,
+            "spend_effect": 180524954.22,
+            "mix_effect": -28916227.42,
+            "favourability": "unfavourable"
+          }
+        ]
+      },
+      "revenue": {
+        "actual_revenue": 40719133012.46,
+        "planned_revenue": 40434767538.33,
+        "variance": 284365474.13,
+        "variance_pct": 0.007,
+        "favourability": "favourable",
+        "avg_members": 310915676.0,
+        "actual_arpu": 13.0965,
+        "planned_arpu": 13.0051,
+        "volume_effect": 0.0,
+        "rate_effect": 284365474.13,
+        "n_periods": 10,
+        "basis": "No member plan is filed or modeled, so volume cannot be varied against plan; the full variance is attributed to rate. Volume effect is reported as zero because it was not measured, not because it was zero."
+      },
+      "pipeline_health": {
+        "control_pass_rate": 0.913,
+        "controls_failed": 2,
+        "blocking_failures": 0
+      },
+      "forecast_quality": {
+        "model": "ets",
+        "mase_filed_quarterly": 0.9357,
+        "series_losing_to_naive": 4,
+        "basis": "MASE is scaled by the in-sample seasonal-naive error: below 1.0 beats the benchmark, above 1.0 loses to it."
+      }
+    }
+  },
+  {
+    "periods": 11,
+    "draft": {
+      "drivers": [
+        {
+          "cost_center": "Technology & Product / Cloud Infrastructure",
+          "comment": "Unfavourable variance of $545,671,174.45 (22.32% over budget) was driven mostly by mix_effect of $359,518,004.07 rather than spend_effect of $186,153,170.38 \u2014 budget share shifted toward this cost center more than overall spend grew."
+        },
+        {
+          "cost_center": "Content / Original Productions",
+          "comment": "Unfavourable variance of $536,301,024.57 (8.52% over budget) was driven mainly by spend_effect of $479,433,500.08, with a much smaller mix_effect of $56,867,524.49 \u2014 overall spend growth, not share shifting, is the primary driver here."
+        },
+        {
+          "cost_center": "Content / Licensed Content",
+          "comment": "Unfavourable variance of $341,954,551.05 (3.19% over budget) reflects a large spend_effect of $817,133,459.08 partly offset by a negative mix_effect of -$475,178,908.03 \u2014 total spend rose sharply but this cost center's budget share actually shrank relative to plan."
+        }
+      ],
+      "headline": "Total cost variance was unfavourable at $2,221,951,191.46, 7.61% over budget ($31,402,425,531.26 actual vs. $29,180,474,339.81 budget) across 11 periods.",
+      "watch_item": "Pipeline health shows 2 failed controls (91.3% pass rate, 0 blocking) and forecast quality shows 4 series losing to the naive benchmark (overall MASE 0.9357) \u2014 worth monitoring before relying further on these inputs."
+    },
+    "facts": {
+      "entity": {
+        "ticker": "NFLX"
+      },
+      "variance": {
+        "period_start": "2025-08-31",
+        "period_end": "2026-06-30",
+        "n_periods": 11,
+        "total_actual": 31402425531.26,
+        "total_budget": 29180474339.81,
+        "total_variance": 2221951191.46,
+        "total_variance_pct": 0.0761,
+        "largest_unfavourable": [
+          {
+            "cost_center": "Technology & Product / Cloud Infrastructure",
+            "actual": 2990386356.44,
+            "budget": 2444715181.99,
+            "variance": 545671174.45,
+            "variance_pct": 0.2232,
+            "spend_effect": 186153170.38,
+            "mix_effect": 359518004.07,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Content / Original Productions",
+            "actual": 6832612572.94,
+            "budget": 6296311548.37,
+            "variance": 536301024.57,
+            "variance_pct": 0.0852,
+            "spend_effect": 479433500.08,
+            "mix_effect": 56867524.49,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Content / Licensed Content",
+            "actual": 11073217247.77,
+            "budget": 10731262696.72,
+            "variance": 341954551.05,
+            "variance_pct": 0.0319,
+            "spend_effect": 817133459.08,
+            "mix_effect": -475178908.03,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "G&A / Corporate Functions",
+            "actual": 1532616789.32,
+            "budget": 1321351033.89,
+            "variance": 211265755.44,
+            "variance_pct": 0.1599,
+            "spend_effect": 100614454.37,
+            "mix_effect": 110651301.06,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / CDN & Delivery",
+            "actual": 2915236752.21,
+            "budget": 2736969499.29,
+            "variance": 178267252.92,
+            "variance_pct": 0.0651,
+            "spend_effect": 208406915.16,
+            "mix_effect": -30139662.23,
+            "favourability": "unfavourable"
+          }
+        ],
+        "largest_favourable": [
+          {
+            "cost_center": "G&A / Facilities",
+            "actual": 449702154.92,
+            "budget": 405842350.36,
+            "variance": 43859804.56,
+            "variance_pct": 0.1081,
+            "spend_effect": 30902921.02,
+            "mix_effect": 12956883.54,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / Platform Engineering",
+            "actual": 2291683385.85,
+            "budget": 2224712057.34,
+            "variance": 66971328.51,
+            "variance_pct": 0.0301,
+            "spend_effect": 169401002.5,
+            "mix_effect": -102429673.98,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Performance Marketing",
+            "actual": 1268882247.9,
+            "budget": 1133320691.82,
+            "variance": 135561556.09,
+            "variance_pct": 0.1196,
+            "spend_effect": 86296858.38,
+            "mix_effect": 49264697.71,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Brand & Media",
+            "actual": 2048088023.89,
+            "budget": 1885989280.03,
+            "variance": 162098743.87,
+            "variance_pct": 0.0859,
+            "spend_effect": 143608910.5,
+            "mix_effect": 18489833.37,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / CDN & Delivery",
+            "actual": 2915236752.21,
+            "budget": 2736969499.29,
+            "variance": 178267252.92,
+            "variance_pct": 0.0651,
+            "spend_effect": 208406915.16,
+            "mix_effect": -30139662.23,
+            "favourability": "unfavourable"
+          }
+        ]
+      },
+      "revenue": {
+        "actual_revenue": 44539482219.65,
+        "planned_revenue": 43971692113.82,
+        "variance": 567790105.83,
+        "variance_pct": 0.0129,
+        "favourability": "favourable",
+        "avg_members": 310205322.0,
+        "actual_arpu": 13.0528,
+        "planned_arpu": 12.8864,
+        "volume_effect": 0.0,
+        "rate_effect": 567790105.83,
+        "n_periods": 11,
+        "basis": "No member plan is filed or modeled, so volume cannot be varied against plan; the full variance is attributed to rate. Volume effect is reported as zero because it was not measured, not because it was zero."
+      },
+      "pipeline_health": {
+        "control_pass_rate": 0.913,
+        "controls_failed": 2,
+        "blocking_failures": 0
+      },
+      "forecast_quality": {
+        "model": "ets",
+        "mase_filed_quarterly": 0.9357,
+        "series_losing_to_naive": 4,
+        "basis": "MASE is scaled by the in-sample seasonal-naive error: below 1.0 beats the benchmark, above 1.0 loses to it."
+      }
+    }
+  },
+  {
+    "periods": 12,
+    "draft": {
+      "headline": "Total spend was $2,419,281,959.81 over budget (7.66%) for the 12 periods ended 2026-06-30 \u2014 an unfavourable variance, led by Cloud Infrastructure, Original Productions, and Licensed Content.",
+      "drivers": [
+        {
+          "cost_center": "Technology & Product / Cloud Infrastructure",
+          "comment": "Actual $3,241,042,735.88 vs budget $2,636,643,812.16, a $604,398,923.71 (22.92%) unfavourable variance. Mix_effect ($402,519,255.81) is roughly double spend_effect ($201,879,667.91), so most of the overage came from Cloud Infrastructure claiming a larger share of the total budget, not from total spend rising."
+        },
+        {
+          "cost_center": "Content / Original Productions",
+          "comment": "Actual $7,423,007,770.90 vs budget $6,846,719,038.70, a $576,288,732.20 (8.42%) unfavourable variance. Spend_effect ($524,232,116.38) dwarfs mix_effect ($52,056,615.81), so this overage tracks the overall rise in total spend rather than a shift in budget share."
+        },
+        {
+          "cost_center": "Content / Licensed Content",
+          "comment": "Actual $12,022,364,280.90 vs budget $11,627,552,033.50, a $394,812,247.40 (3.40%) unfavourable variance. Spend_effect ($890,285,723.19) was unfavourable but was partly offset by a favourable mix_effect (-$495,473,475.79) \u2014 Licensed Content's share of total budget actually shrank even as overall spend grew."
+        }
+      ],
+      "watch_item": "Cloud Infrastructure's overage is mix-driven, not spend-driven; separately, 4 forecast series lose to the naive benchmark and 2 non-blocking controls failed."
+    },
+    "facts": {
+      "entity": {
+        "ticker": "NFLX"
+      },
+      "variance": {
+        "period_start": "2025-07-31",
+        "period_end": "2026-06-30",
+        "n_periods": 12,
+        "total_actual": 34016247000.0,
+        "total_budget": 31596965040.19,
+        "total_variance": 2419281959.81,
+        "total_variance_pct": 0.0766,
+        "largest_unfavourable": [
+          {
+            "cost_center": "Technology & Product / Cloud Infrastructure",
+            "actual": 3241042735.88,
+            "budget": 2636643812.16,
+            "variance": 604398923.71,
+            "variance_pct": 0.2292,
+            "spend_effect": 201879667.91,
+            "mix_effect": 402519255.81,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Content / Original Productions",
+            "actual": 7423007770.9,
+            "budget": 6846719038.7,
+            "variance": 576288732.2,
+            "variance_pct": 0.0842,
+            "spend_effect": 524232116.38,
+            "mix_effect": 52056615.81,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Content / Licensed Content",
+            "actual": 12022364280.9,
+            "budget": 11627552033.5,
+            "variance": 394812247.4,
+            "variance_pct": 0.034,
+            "spend_effect": 890285723.19,
+            "mix_effect": -495473475.79,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "G&A / Corporate Functions",
+            "actual": 1644275427.06,
+            "budget": 1436936585.16,
+            "variance": 207338841.9,
+            "variance_pct": 0.1443,
+            "spend_effect": 110021793.34,
+            "mix_effect": 97317048.56,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / CDN & Delivery",
+            "actual": 3164594287.44,
+            "budget": 2964927394.12,
+            "variance": 199666893.32,
+            "variance_pct": 0.0673,
+            "spend_effect": 227015327.19,
+            "mix_effect": -27348433.87,
+            "favourability": "unfavourable"
+          }
+        ],
+        "largest_favourable": [
+          {
+            "cost_center": "G&A / Facilities",
+            "actual": 482916572.94,
+            "budget": 441603931.83,
+            "variance": 41312641.11,
+            "variance_pct": 0.0936,
+            "spend_effect": 33812248.24,
+            "mix_effect": 7500392.87,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / Platform Engineering",
+            "actual": 2472319924.89,
+            "budget": 2404176346.59,
+            "variance": 68143578.29,
+            "variance_pct": 0.0283,
+            "spend_effect": 184080352.53,
+            "mix_effect": -115936774.24,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Performance Marketing",
+            "actual": 1364719838.14,
+            "budget": 1215055328.48,
+            "variance": 149664509.66,
+            "variance_pct": 0.1232,
+            "spend_effect": 93033031.26,
+            "mix_effect": 56631478.4,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Brand & Media",
+            "actual": 2201006161.86,
+            "budget": 2023350569.65,
+            "variance": 177655592.22,
+            "variance_pct": 0.0878,
+            "spend_effect": 154921699.77,
+            "mix_effect": 22733892.45,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / CDN & Delivery",
+            "actual": 3164594287.44,
+            "budget": 2964927394.12,
+            "variance": 199666893.32,
+            "variance_pct": 0.0673,
+            "spend_effect": 227015327.19,
+            "mix_effect": -27348433.87,
+            "favourability": "unfavourable"
+          }
+        ]
+      },
+      "revenue": {
+        "actual_revenue": 48370764000.0,
+        "planned_revenue": 47689825212.39,
+        "variance": 680938787.61,
+        "variance_pct": 0.0143,
+        "favourability": "favourable",
+        "avg_members": 309498551.0,
+        "actual_arpu": 13.024,
+        "planned_arpu": 12.8406,
+        "volume_effect": 0.0,
+        "rate_effect": 680938787.61,
+        "n_periods": 12,
+        "basis": "No member plan is filed or modeled, so volume cannot be varied against plan; the full variance is attributed to rate. Volume effect is reported as zero because it was not measured, not because it was zero."
+      },
+      "pipeline_health": {
+        "control_pass_rate": 0.913,
+        "controls_failed": 2,
+        "blocking_failures": 0
+      },
+      "forecast_quality": {
+        "model": "ets",
+        "mase_filed_quarterly": 0.9357,
+        "series_losing_to_naive": 4,
+        "basis": "MASE is scaled by the in-sample seasonal-naive error: below 1.0 beats the benchmark, above 1.0 loses to it."
+      }
+    }
+  },
+  {
+    "periods": 13,
+    "draft": {
+      "drivers": [
+        {
+          "cost_center": "Technology & Product / Cloud Infrastructure",
+          "comment": "Variance of $635,493,096.69 unfavourable (22.29%) was driven mainly by mix_effect ($443,617,956.18) rather than spend_effect ($191,875,140.51) \u2014 budget share shifted toward Cloud Infrastructure more than overall spend grew."
+        },
+        {
+          "cost_center": "Content / Original Productions",
+          "comment": "Variance of $554,229,010.45 unfavourable (7.45%) was driven almost entirely by spend_effect ($500,468,180.72) versus a small mix_effect ($53,760,829.73) \u2014 this reflects overall spend growth, not a reallocation of budget share."
+        },
+        {
+          "cost_center": "Content / Licensed Content",
+          "comment": "Variance of $279,696,764.71 unfavourable (2.21%) masks a large spend_effect ($851,391,314.87) largely offset by a negative mix_effect (-$571,694,550.16) \u2014 total spend growth pushed this center over budget, but its budget share actually shrank relative to other centers."
+        }
+      ],
+      "headline": "Total spend was $2,306,688,492.99 over budget (6.73% unfavourable), while revenue ran $987,268,013.08 favourable (1.93%, entirely a rate effect, volume unmeasured).",
+      "watch_item": "4 forecast series lose to the naive benchmark and 2 pipeline controls failed (0 blocking) \u2014 confirm these don't touch the cost-center figures above."
+    },
+    "facts": {
+      "entity": {
+        "ticker": "NFLX"
+      },
+      "variance": {
+        "period_start": "2025-06-30",
+        "period_end": "2026-06-30",
+        "n_periods": 13,
+        "total_actual": 36577217357.12,
+        "total_budget": 34270528864.13,
+        "total_variance": 2306688492.99,
+        "total_variance_pct": 0.0673,
+        "largest_unfavourable": [
+          {
+            "cost_center": "Technology & Product / Cloud Infrastructure",
+            "actual": 3486186877.53,
+            "budget": 2850693780.84,
+            "variance": 635493096.69,
+            "variance_pct": 0.2229,
+            "spend_effect": 191875140.51,
+            "mix_effect": 443617956.18,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Content / Original Productions",
+            "actual": 7989697338.76,
+            "budget": 7435468328.31,
+            "variance": 554229010.45,
+            "variance_pct": 0.0745,
+            "spend_effect": 500468180.72,
+            "mix_effect": 53760829.73,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Content / Licensed Content",
+            "actual": 12928838909.27,
+            "budget": 12649142144.56,
+            "variance": 279696764.71,
+            "variance_pct": 0.0221,
+            "spend_effect": 851391314.87,
+            "mix_effect": -571694550.16,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "G&A / Corporate Functions",
+            "actual": 1763276252.25,
+            "budget": 1562412225.29,
+            "variance": 200864026.96,
+            "variance_pct": 0.1286,
+            "spend_effect": 105163194.76,
+            "mix_effect": 95700832.2,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / CDN & Delivery",
+            "actual": 3408595235.31,
+            "budget": 3210586772.71,
+            "variance": 198008462.6,
+            "variance_pct": 0.0617,
+            "spend_effect": 216098899.25,
+            "mix_effect": -18090436.65,
+            "favourability": "unfavourable"
+          }
+        ],
+        "largest_favourable": [
+          {
+            "cost_center": "G&A / Facilities",
+            "actual": 518606383.05,
+            "budget": 480772737.56,
+            "variance": 37833645.49,
+            "variance_pct": 0.0787,
+            "spend_effect": 32359959.95,
+            "mix_effect": 5473685.54,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / Platform Engineering",
+            "actual": 2666217457.43,
+            "budget": 2597793337.96,
+            "variance": 68424119.47,
+            "variance_pct": 0.0263,
+            "spend_effect": 174852860.42,
+            "mix_effect": -106428740.95,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Performance Marketing",
+            "actual": 1461488969.58,
+            "budget": 1306024080.47,
+            "variance": 155464889.11,
+            "variance_pct": 0.119,
+            "spend_effect": 87906163.63,
+            "mix_effect": 67558725.48,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Brand & Media",
+            "actual": 2354309933.95,
+            "budget": 2177635456.44,
+            "variance": 176674477.51,
+            "variance_pct": 0.0811,
+            "spend_effect": 146572778.88,
+            "mix_effect": 30101698.63,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / CDN & Delivery",
+            "actual": 3408595235.31,
+            "budget": 3210586772.71,
+            "variance": 198008462.6,
+            "variance_pct": 0.0617,
+            "spend_effect": 216098899.25,
+            "mix_effect": -18090436.65,
+            "favourability": "unfavourable"
+          }
+        ]
+      },
+      "revenue": {
+        "actual_revenue": 52084145302.28,
+        "planned_revenue": 51096877289.2,
+        "variance": 987268013.08,
+        "variance_pct": 0.0193,
+        "favourability": "favourable",
+        "avg_members": 309071289.0,
+        "actual_arpu": 12.9629,
+        "planned_arpu": 12.7172,
+        "volume_effect": 0.0,
+        "rate_effect": 987268013.08,
+        "n_periods": 13,
+        "basis": "No member plan is filed or modeled, so volume cannot be varied against plan; the full variance is attributed to rate. Volume effect is reported as zero because it was not measured, not because it was zero."
+      },
+      "pipeline_health": {
+        "control_pass_rate": 0.913,
+        "controls_failed": 2,
+        "blocking_failures": 0
+      },
+      "forecast_quality": {
+        "model": "ets",
+        "mase_filed_quarterly": 0.9357,
+        "series_losing_to_naive": 4,
+        "basis": "MASE is scaled by the in-sample seasonal-naive error: below 1.0 beats the benchmark, above 1.0 loses to it."
+      }
+    }
+  },
+  {
+    "periods": 14,
+    "draft": {
+      "drivers": [
+        {
+          "cost_center": "Technology & Product / Cloud Infrastructure",
+          "comment": "Actual spend of $3,717,070,836.21 exceeded budget by $668,372,557.15 (21.92% unfavourable). mix_effect ($475,579,797.72) was larger than spend_effect ($192,792,759.44), so most of the overage came from Cloud Infrastructure taking a bigger share of the budget rather than total spend simply rising."
+        },
+        {
+          "cost_center": "Content / Original Productions",
+          "comment": "Variance of $553,358,946.90 unfavourable (6.94%) was driven mainly by spend_effect ($504,008,712.22), with a much smaller mix_effect ($49,350,234.68) \u2014 this overage reflects overall spend growth, not a shift in budget share."
+        },
+        {
+          "cost_center": "Content / Licensed Content",
+          "comment": "Variance of $212,289,694.50 unfavourable (1.56%) resulted from a large positive spend_effect ($858,154,570.48) that was substantially offset by a negative mix_effect (-$645,864,875.98) \u2014 total spend rose sharply, but Licensed Content's share of the budget actually declined."
+        }
+      ],
+      "headline": "Total spend was $2,318,944,635.74 over budget (6.32% unfavourable) across the 14 periods, with the largest overages concentrated in Technology & Product (Cloud Infrastructure) and Content (Original Productions, Licensed Content).",
+      "watch_item": "Forecast MASE is 0.9357 (beats seasonal-naive), but 4 series still lose to naive and 2 of the controls failed (0 blocking) \u2014 worth confirming those failures before relying on next period's forecast."
+    },
+    "facts": {
+      "entity": {
+        "ticker": "NFLX"
+      },
+      "variance": {
+        "period_start": "2025-05-31",
+        "period_end": "2026-06-30",
+        "n_periods": 14,
+        "total_actual": 38989214519.77,
+        "total_budget": 36670269884.03,
+        "total_variance": 2318944635.74,
+        "total_variance_pct": 0.0632,
+        "largest_unfavourable": [
+          {
+            "cost_center": "Technology & Product / Cloud Infrastructure",
+            "actual": 3717070836.21,
+            "budget": 3048698279.06,
+            "variance": 668372557.15,
+            "variance_pct": 0.2192,
+            "spend_effect": 192792759.44,
+            "mix_effect": 475579797.72,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Content / Original Productions",
+            "actual": 8523422231.73,
+            "budget": 7970063284.84,
+            "variance": 553358946.9,
+            "variance_pct": 0.0694,
+            "spend_effect": 504008712.22,
+            "mix_effect": 49350234.68,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Content / Licensed Content",
+            "actual": 13782583360.3,
+            "budget": 13570293665.8,
+            "variance": 212289694.5,
+            "variance_pct": 0.0156,
+            "spend_effect": 858154570.48,
+            "mix_effect": -645864875.98,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / CDN & Delivery",
+            "actual": 3638402500.49,
+            "budget": 3426885482.68,
+            "variance": 211517017.81,
+            "variance_pct": 0.0617,
+            "spend_effect": 216708459.81,
+            "mix_effect": -5191442.0,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "G&A / Corporate Functions",
+            "actual": 1875354727.47,
+            "budget": 1667220260.34,
+            "variance": 208134467.13,
+            "variance_pct": 0.1248,
+            "spend_effect": 105431225.12,
+            "mix_effect": 102703242.01,
+            "favourability": "unfavourable"
+          }
+        ],
+        "largest_favourable": [
+          {
+            "cost_center": "G&A / Facilities",
+            "actual": 552220095.31,
+            "budget": 517961071.31,
+            "variance": 34259024.0,
+            "variance_pct": 0.0661,
+            "spend_effect": 32754682.52,
+            "mix_effect": 1504341.48,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Technology & Product / Platform Engineering",
+            "actual": 2848835853.23,
+            "budget": 2765791826.17,
+            "variance": 83044027.06,
+            "variance_pct": 0.03,
+            "spend_effect": 174902397.48,
+            "mix_effect": -91858370.41,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Performance Marketing",
+            "actual": 1552628982.11,
+            "budget": 1389316055.36,
+            "variance": 163312926.76,
+            "variance_pct": 0.1175,
+            "spend_effect": 87857193.96,
+            "mix_effect": 75455732.79,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "Marketing / Brand & Media",
+            "actual": 2498695932.91,
+            "budget": 2314039958.48,
+            "variance": 184655974.42,
+            "variance_pct": 0.0798,
+            "spend_effect": 146334634.72,
+            "mix_effect": 38321339.7,
+            "favourability": "unfavourable"
+          },
+          {
+            "cost_center": "G&A / Corporate Functions",
+            "actual": 1875354727.47,
+            "budget": 1667220260.34,
+            "variance": 208134467.13,
+            "variance_pct": 0.1248,
+            "spend_effect": 105431225.12,
+            "mix_effect": 102703242.01,
+            "favourability": "unfavourable"
+          }
+        ]
+      },
+      "revenue": {
+        "actual_revenue": 55772212859.43,
+        "planned_revenue": 54716939847.55,
+        "variance": 1055273011.89,
+        "variance_pct": 0.0193,
+        "favourability": "favourable",
+        "avg_members": 308854091.0,
+        "actual_arpu": 12.8984,
+        "planned_arpu": 12.6544,
+        "volume_effect": 0.0,
+        "rate_effect": 1055273011.89,
+        "n_periods": 14,
+        "basis": "No member plan is filed or modeled, so volume cannot be varied against plan; the full variance is attributed to rate. Volume effect is reported as zero because it was not measured, not because it was zero."
+      },
+      "pipeline_health": {
+        "control_pass_rate": 0.913,
+        "controls_failed": 2,
+        "blocking_failures": 0
+      },
+      "forecast_quality": {
+        "model": "ets",
+        "mase_filed_quarterly": 0.9357,
+        "series_losing_to_naive": 4,
+        "basis": "MASE is scaled by the in-sample seasonal-naive error: below 1.0 beats the benchmark, above 1.0 loses to it."
+      }
+    }
+  }
+]

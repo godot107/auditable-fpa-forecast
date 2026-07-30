@@ -284,11 +284,72 @@ def test_report_flags_a_series_whose_fit_did_not_converge():
     )
     assert not bad.converged
     assert good.converged
+    assert not bad.marginal, "R-hat 1.93 with ESS 3 is a failed sampler, not a threshold miss"
 
     markdown = interval_report_markdown([bad, good])
-    assert "Not converged" in markdown
+    assert "Genuinely unconverged" in markdown
     assert "`Stuck`" in markdown
-    assert "provisional" in markdown
+
+
+def test_a_threshold_miss_is_reported_apart_from_a_failed_sampler():
+    """R-hat 1.011 with ESS 1,106 is not the same finding as R-hat 1.99 with ESS 3.
+
+    Filing them together produced a published claim — "8 of 9 do not converge" — that was
+    true by the letter and wrong in what it conveyed. Four of the ten real failures were
+    threshold misses with healthy mixing, and one of them had the *best* ESS in the table.
+    """
+    marginal = IntervalReport(
+        series="Marginal",
+        n_points=36,
+        model={"coverage": 0.80, "pinball": 400.0, "relative_width": 0.3},
+        benchmark={"coverage": 0.80, "pinball": 500.0, "relative_width": 0.3},
+        worst_rhat=1.011,
+        min_ess=1106.0,
+    )
+    assert not marginal.converged
+    assert marginal.marginal, "just over the ceiling with strong ESS is a threshold artifact"
+
+    markdown = interval_report_markdown([marginal])
+    assert "Marginal, and filed separately" in markdown
+    assert "threshold artifact" in markdown
+
+
+def test_the_report_states_that_it_is_not_a_short_window_effect():
+    """The corrected diagnosis has to reach the page, not just the commit message.
+
+    The per-fold measurement is unambiguous: the shortest window has the best pass rate.
+    The old explanation survived for weeks because only the worst fold was ever reported.
+    """
+    bad = IntervalReport(
+        series="Stuck",
+        n_points=36,
+        model={"coverage": 0.80, "pinball": 400.0, "relative_width": 0.3},
+        benchmark={"coverage": 0.80, "pinball": 500.0, "relative_width": 0.3},
+        worst_rhat=1.93,
+        min_ess=3.0,
+    )
+    markdown = interval_report_markdown([bad])
+    assert "not a short-window effect" in markdown
+    assert "7 of 9" in markdown
+
+
+def test_folds_are_recorded_individually():
+    """An aggregate that cannot express "one bad fold out of three" is not a diagnostic."""
+    report = IntervalReport(
+        series="Mixed",
+        n_points=36,
+        model={"coverage": 0.80, "pinball": 400.0, "relative_width": 0.3},
+        benchmark={"coverage": 0.80, "pinball": 500.0, "relative_width": 0.3},
+        worst_rhat=1.072,
+        min_ess=60.0,
+        folds=(
+            {"fold": 0, "train_months": 42, "worst_rhat": 1.004, "min_ess": 812.0, "converged": True},
+            {"fold": 1, "train_months": 54, "worst_rhat": 1.072, "min_ess": 60.0, "converged": False},
+            {"fold": 2, "train_months": 66, "worst_rhat": 1.002, "min_ess": 1825.0, "converged": True},
+        ),
+    )
+    assert not report.converged, "the series is flagged when any fold fails"
+    assert report.folds_converged == 2, "but two of its three folds are clean"
 
 
 def test_convergence_thresholds_are_the_conventional_ones():

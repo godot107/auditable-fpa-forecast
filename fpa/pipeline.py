@@ -60,6 +60,9 @@ class PipelineResult:
     forecast_income: pd.DataFrame | None = None
     forecast_balance: pd.DataFrame | None = None
     derived_vs_direct: pd.DataFrame | None = None
+    # Regional decomposition — the only driver split built from parts the filer reports.
+    regional: pd.DataFrame | None = None
+    regional_vs_total: pd.DataFrame | None = None
     metadata: dict = field(default_factory=dict)
 
     @property
@@ -257,5 +260,26 @@ def run(
         )
     except Exception as exc:  # noqa: BLE001 - additive layer, must not gate the run
         logger.warning("three-statement forecast unavailable: %s", exc)
+
+    # Regional decomposition. Needs the Financial Statement Data Set snapshot, which is a
+    # separate SEC product and ~85 MB per archive, so its absence is normal rather than an
+    # error — the same treatment the ERP extract gets.
+    try:
+        from fpa.forecast.regional import compare_regional_vs_total, quarterly_regional
+        from fpa.ingest.segments import load_segment_revenue
+
+        facts = load_segment_revenue(settings)
+        result.regional = quarterly_regional(facts)
+        result.regional_vs_total = compare_regional_vs_total(
+            result.regional, horizon=horizon_quarters
+        )
+        logger.info(
+            "regional: %d quarters x %d regions (%d derived Q4)",
+            len(result.regional),
+            result.regional.shape[1],
+            len(result.regional.attrs["derived_q4"]),
+        )
+    except Exception as exc:  # noqa: BLE001 - additive, and the archives may not be present
+        logger.warning("regional decomposition unavailable: %s", exc)
 
     return result

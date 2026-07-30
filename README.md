@@ -13,7 +13,7 @@
   <img alt="Odoo"      src="https://img.shields.io/badge/Odoo-18.0-714B67?logo=odoo&logoColor=white">
   <img alt="NumPyro"   src="https://img.shields.io/badge/NumPyro-NUTS-EE4C2C">
   <img alt="Controls"  src="https://img.shields.io/badge/controls-23_(21_blocking)-2e7d32">
-  <img alt="Tests"     src="https://img.shields.io/badge/tests-171-2e7d32">
+  <img alt="Tests"     src="https://img.shields.io/badge/tests-191-2e7d32">
   <img alt="License"   src="https://img.shields.io/badge/license-MIT-blue">
 </p>
 
@@ -51,7 +51,7 @@ SEC EDGAR XBRL ──> three statements ──> disaggregation ──> Odoo (pos
 | Forecast vs seasonal-naive | MASE **0.936** on filed quarters — beats it by 6%, loses on 4 series |
 | Interval calibration | **provisional** — 8 of 9 backtest fits do not converge; see below |
 | Groundedness checker | **0% false acceptance, 100% parse coverage** over 364 cases |
-| Controls / tests | **23 controls** (21 blocking), **171 tests** |
+| Controls / tests | **23 controls** (21 blocking), **191 tests** |
 
 **Status:** built and verified end to end. `python -m fpa` exits 0 with 21/23 controls passing
 and zero blocking failures; the two open items are `WARN` and structural.
@@ -96,7 +96,7 @@ constraint rather than around the model:
 | Budget-vs-actual variance bridge (spend / mix decomposition) | Built |
 | Grounded LLM commentary, human-in-the-loop, append-only audit log | Built |
 | Measured checker error rates — false acceptance, false rejection, parse coverage | Built |
-| Test suite (171 tests) | Built |
+| Test suite (191 tests) | Built |
 | Bayesian posterior-predictive intervals (NumPyro), scored on coverage **and** sharpness | Built (opt-in) |
 
 ---
@@ -297,10 +297,38 @@ Series Analysis*, p.253). And the *principle* is driver-shaped — forecast the 
 never the margin — which the backtest supports rather than assumes, since `operating_income`
 is the hardest row in the table.
 
-**The credible route to earning the term** is regional revenue, already ingested and already
-`REAL`: UCAN / EMEA / LATAM / APAC are filed, carry accession numbers, and sum to the
-consolidated streaming line. Forecasting four filed regions and aggregating is a genuine
-driver decomposition on data nobody here invented. That is on the roadmap; it is not built.
+**And there is one genuine driver split, now built.** Regional revenue is filed: UCAN / EMEA
+/ LATAM / APAC carry accession numbers and sum to the consolidated streaming line. Forecasting
+four filed regions and aggregating is a driver decomposition on data nobody here invented —
+see below. It is the only one this data supports, which is why the pipeline is described as
+bottom-up rather than driver-based overall.
+
+### Regional decomposition — parts the filer reports separately
+
+| approach | mean MASE | fold 1 | fold 2 | fold 3 |
+|---|---|---|---|---|
+| `bottom-up (4 regions)` | **0.311** | 0.442 | 0.292 | 0.199 |
+| `direct (consolidated)` | 0.378 | 0.548 | 0.140 | 0.447 |
+| `seasonal_naive` | 1.244 | 0.561 | 1.556 | 1.615 |
+
+**Bottom-up wins by 17.8%**, on 28 quarters × 4 regions, every figure filed. Unlike the
+operating-income comparison, this one is comfortably below 1.0 — the four regions grow at
+genuinely different rates, so forecasting the consolidated line averages away structure the
+parts retain. That is the case for decomposition made empirically rather than asserted.
+
+**Getting the data cost 2.4 GB and surfaced the Q4 problem a second time.** Regional detail
+lives in the `segments` dimension of SEC's Financial Statement Data Sets, which `companyfacts`
+does not expose at all, so each quarter needs its own ~85 MB archive — 24 of them. Four
+archives had been enough while only the *annual* split was used, and that is why this was
+mislabelled a roadmap item: four archives yield **five annual observations**, which cannot be
+backtested. The 10-Qs carry the quarterly facts.
+
+And 10-Ks report segments **annually**, so no year has a Q4 quarterly fact — the identical gap
+the income statement has, met again in a different SEC product. Closed the identical way,
+`Q4 = FY − (Q1+Q2+Q3)`, under the identical refusal rule: **7 years derived**, and only where
+the four regions foot to the filed streaming total. Four of those years (2019–2022) predate
+the filer tagging a consolidated streaming total, so the footing check cannot run on them —
+they are derived **and flagged**, not derived and trusted.
 
 ---
 
@@ -432,11 +460,38 @@ Four tests then break the checker on purpose — reverting the regex bug, wideni
 tolerance, tightening it, dropping scale suffixes — and assert the evaluation goes red.
 Without those, "0% false acceptance" is indistinguishable from an instrument that cannot see.
 
-**Still open:** synthetic phrasing is not the distribution a model actually writes. Closing
-that needs ~50 real drafts adjudicated by hand — a model writing "roughly six hundred
-million" in words would defeat every regex here, and nothing in this corpus would notice.
+### Measured against prose a real model wrote
 
-**A test suite that only passes proves nothing.** A dozen of the 171 tests deliberately corrupt
+The synthetic score answers "does the checker catch the fabrications we thought of." It cannot
+answer whether the *phrasings* a generator produces resemble what a model actually writes, and
+a corpus can only contain what its author imagined. So the checker was run against **12 real
+drafts from the `claudecode` provider, frozen in `data/real_drafts.<vintage>.json`**:
+
+**247 numerals, 100% parse coverage, zero unparsed spans.**
+
+**That is weaker than it sounds, and the census is why:**
+
+| phrasing | count |
+|---|---|
+| digit form — `$553,358,946.90`, `6.94%`, `$525.49M` | **247** |
+| word form — *six hundred million* | **0** |
+
+The hard case **never occurred, so it is untested rather than passed.** A draft saying
+*"roughly six hundred million"* would defeat the regex entirely; none appeared, which is a
+fact about the model's output rather than evidence about the checker.
+
+There is a structural reason digits dominate, and it is a design decision rather than luck:
+the provider constrains output with a **JSON schema** and caps length — Huyen's second
+hallucination mitigation (*AI Engineering*, pp.219–225). A bounded, structured field pushes a
+model toward compact figures. **The schema is carrying part of the load the regex appears to
+carry**, which is worth knowing before anyone relies on the regex alone.
+
+**Still open, and deliberately:** accept/reject accuracy on real drafts. Ground truth needs
+each numeral read and judged by hand; deriving it from the checker's own matching rule is
+exactly the tautology `evaluation.py` was rewritten to remove. Half the gap is closed and the
+report says which half.
+
+**A test suite that only passes proves nothing.** A dozen of the 191 tests deliberately corrupt
 the data and assert the control catches it — an unbalanced balance sheet, a double-counted
 line, a negative content-asset balance, a broken cash roll-forward, a share count misread as
 dollars, a double-counted region, a forecast split that no longer ties. One asserts pinball
@@ -805,7 +860,7 @@ python -m venv .venv && .venv/bin/pip install -r requirements.txt
 cp .env.example .env          # set EDGAR_USER_AGENT to "Your Name your@email"
 
 .venv/bin/python -m fpa       # ingest -> controls -> forecast; prints the control report
-.venv/bin/python -m pytest    # 171 tests
+.venv/bin/python -m pytest    # 191 tests
 .venv/bin/streamlit run app/Home.py
 ```
 
@@ -973,7 +1028,7 @@ app/                 Streamlit: Overview, Controls, Forecast, Variance, Commenta
 sql/                 Extract queries as first-class artifacts
 reports/             Generated calibration report (--intervals)
 docker/              Odoo 18 + Postgres, OCA addons, fetch script
-tests/               171 tests, including tests that validate the validators
+tests/               191 tests, including tests that validate the validators
 data/                Pinned vintages + posterior + ERP proof (committed, ~1.8 MB)
 ```
 
@@ -1019,9 +1074,28 @@ sampler did not converge:
 | `Technology & Product / Platform Engineering` ⚠ | 100% | 0.29 | 2,954,856 | 3,823,185 | **yes** | 1.011 | 1,106 |
 
 **Read the last two columns first, and then read nothing else with much confidence.** Eight of
-the nine fits fail R-hat ≤ 1.01 or ESS ≥ 400. The full-data fits mostly converge; the backtest
-ones often do not, because rolling origin trains on 42–66 months instead of 78 and a shorter
-series identifies the trend and observation scales less well.
+the nine *series* are flagged, because a series is flagged when **any** of its folds misses a
+threshold — and that count badly overstates the problem.
+
+Measured per fold instead of aggregated:
+
+| training window | folds passing |
+|---|---|
+| 42 months (shortest) | **7 / 9** |
+| 54 months | 4 / 9 |
+| 66 months (longest) | 6 / 9 |
+
+**17 of 27 folds converge cleanly, and every series has at least one clean fold.** Four of the
+ten failures miss on R-hat **1.011** against a 1.010 ceiling while mixing well — ESS 545, 548,
+719 and 1,106. `Platform Engineering` has an ESS of **1,106** and was filed as "does not
+converge."
+
+**And the explanation this README gave for weeks was wrong.** It said rolling origin trains on
+42–66 months instead of 78 and that shorter series identify the scales poorly. The shortest
+window has the *best* pass rate. There is no length effect in the data at all: `Brand & Media`
+fails at 42 and 66 but passes at 54; `CDN & Delivery` fails only at 54. These are
+series-specific sampling difficulties, not a property of series length — and the wrong
+diagnosis survived because only the worst fold was ever reported.
 
 The consequence is uncomfortable and worth stating plainly. Two of the three series that
 "beat naive" — Cloud Infrastructure at **R-hat 1.99, ESS 3** and CDN & Delivery at **1.358,

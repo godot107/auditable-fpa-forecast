@@ -18,7 +18,7 @@ cp .env.example .env                     # set EDGAR_USER_AGENT
 
 .venv/bin/python -m fpa                  # ingest -> controls -> forecast
 .venv/bin/python -m fpa --refresh        # re-pull EDGAR instead of the pinned vintage
-.venv/bin/python -m pytest               # 171 tests (pytest.ini scopes to tests/)
+.venv/bin/python -m pytest               # 191 tests (pytest.ini scopes to tests/)
 .venv/bin/pip install -r requirements-bayes.txt   # optional: NumPyro + JAX
 .venv/bin/python -m fpa.forecast.posterior        # fit + pin the posterior (~1 MB, committed)
 .venv/bin/python -m fpa --groundedness   # + checker error rates (fast; exits 1 if unclean)
@@ -183,8 +183,13 @@ docker compose -f docker/docker-compose.yml up -d
   another 78%. Marketing over-covers *while losing to the benchmark* — buying calibration
   with width.
 - **The interval layer is provisional, and the report says so.** 8 of 9 *backtest* fits
-  fail R-hat ≤ 1.01 or ESS ≥ 400, because rolling origin trains on 42–66 months rather
-  than 78 and short series identify the scales poorly. Two of the three series that beat
+  are *flagged*, but the aggregate lied: measured per fold, **17 of 27 folds converge** and
+  every series has at least one clean fold. The shortest window (42 months) has the **best**
+  pass rate at 7/9, against 4/9 at 54 and 6/9 at 66 — so "short series identify the scales
+  poorly", published here for weeks, is contradicted by the data. Four of the ten failures
+  miss on R-hat 1.011 against a 1.010 ceiling with ESS 545–1,106, which is a threshold
+  artifact, not a failed sampler. The wrong diagnosis survived because `backtest_intervals`
+  reported only `max(rhat)` across folds; it now records each fold. Two of the three series that beat
   naive are the worst-converged rows (R-hat 1.99 / ESS 3); the one clean fit loses. Do not
   quote a headline from this table until short-window sampling is fixed.
 - **NumPyro, not Pyro/torch.** House choice (see `financial-forecasting-engine`), and it
@@ -336,6 +341,27 @@ docker compose -f docker/docker-compose.yml up -d
   the summary. That doubled the work, required two passes to agree, and made the fallback
   counter report every degradation twice — 22 where the truth was 11. Now computed once and
   both outputs derived from it; every score is unchanged, which is what makes it a refactor.
+
+- **The regional split is the one genuine driver decomposition, and it is built.** UCAN /
+  EMEA / LATAM / APAC are filed, carry accession numbers, and sum to the streaming line.
+  Bottom-up **0.311** vs direct **0.378** vs naive **1.244** — decomposition wins by 17.8% and
+  is comfortably below 1.0, unlike the operating-income case. It was mislabelled a roadmap
+  item because four archives gave only *annual* data (5 observations, unbacktestable); the
+  quarterly facts are in the 10-Qs, which needed **24 archives and 2.4 GB**.
+- **The Q4 gap exists in the segment data too, in a different SEC product.** 10-Ks report
+  segments annually, so no year has a Q4 quarterly fact — the identical problem
+  `_derive_q4` solves for the income statement, met again in the Financial Statement Data
+  Sets and closed the identical way under the identical refusal rule. 7 years derived; 4 of
+  them (2019–2022) predate the filer tagging a streaming total, so the footing check cannot
+  run and they are derived **and flagged**.
+- **The checker was measured against real prose, and the result is weaker than it looks.**
+  12 drafts, 247 numerals, **100% parse coverage, 0 unparsed** — but the census shows every
+  numeral was digit form. The hard case (*"roughly six hundred million"*) never occurred, so
+  it is **untested rather than passed**. And the reason is a design decision: the JSON schema
+  and length cap push the model toward compact figures, so the schema carries part of the
+  load the regex appears to carry. Accept/reject accuracy on real drafts stays open, because
+  deriving ground truth from the checker's own rule is the tautology `evaluation.py` exists
+  to prevent.
 
 ## The bug class this codebase keeps finding
 
