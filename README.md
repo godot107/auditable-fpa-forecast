@@ -1,6 +1,6 @@
 # Auditable FP&A Rolling Forecast
 
-> A driver-based FP&A rolling forecast built on real SEC filings — where every actual
+> A bottom-up FP&A rolling forecast built on real SEC filings — where every actual
 > traces to the accession number of the document it was tagged in, integrity controls
 > block the pipeline rather than warn in a log, and an LLM writes the commentary but is
 > structurally incapable of producing a number.
@@ -16,8 +16,8 @@
   <img alt="License"   src="https://img.shields.io/badge/license-MIT-blue">
 </p>
 
-A driver-based FP&A forecasting pipeline where **every actual traces to the SEC filing it
-came from**, a blocking controls layer gates the pipeline, and the forecast is measured
+A bottom-up hierarchical FP&A forecasting pipeline where **every actual traces to the SEC
+filing it came from**, a blocking controls layer gates the pipeline, and the forecast is measured
 against a naive benchmark rather than presented on its own.
 
 Actuals come from SEC EDGAR XBRL. All three statements are built and their articulation is
@@ -144,8 +144,32 @@ the selection is visible rather than implied.
 
 **Why operating income is the hardest series.** It is a small difference between two large
 numbers, so proportionally modest errors in revenue and cost compound into a large error in
-the residual. That is the argument for forecasting the *drivers* and letting the margin fall
+the residual. That is the argument for forecasting the components and letting the margin fall
 out — not forecasting the margin directly.
+
+### What "bottom-up" means here, and what it does not
+
+**No exogenous variable enters any model.** Each cost line is extrapolated from its own
+history — `seasonal_naive`, `drift_seasonal`, ETS — and parents are formed by aggregation.
+There is no regression on subscribers, headcount, instance hours or price.
+
+That is deliberate rather than unfinished, and the reason is worth stating because the
+alternative looks available and is not. The pipeline *does* compute a member count and an
+ARPU, but members are `MODELED` — invented by this project, since no filer tags membership in
+XBRL — and ARPU is `IMPLIED`, solved as revenue ÷ members. Their product reproduces filed
+revenue to **$5e-7**. Using them as features would mean regressing revenue on an exact
+restatement of itself: zero incremental information, dressed as a driver model.
+
+So what is bottom-up is the **hierarchy**, not the feature set: nine leaves forecast
+independently, parents by aggregation, coherent by construction (Nielsen, *Practical Time
+Series Analysis*, p.253). And the *principle* is driver-shaped — forecast the components,
+never the margin — which the backtest supports rather than assumes, since `operating_income`
+is the hardest row in the table.
+
+**The credible route to earning the term** is regional revenue, already ingested and already
+`REAL`: UCAN / EMEA / LATAM / APAC are filed, carry accession numbers, and sum to the
+consolidated streaming line. Forecasting four filed regions and aggregating is a genuine
+driver decomposition on data nobody here invented. That is on the roadmap; it is not built.
 
 ---
 

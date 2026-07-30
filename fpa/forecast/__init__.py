@@ -1,4 +1,11 @@
-"""Forecast layer — driver-based bottom-up forecasting with an honest backtest."""
+"""Forecast layer — bottom-up hierarchical forecasting with an honest backtest.
+
+Not driver-based, and the distinction is worth keeping straight. No exogenous variable
+enters any model here: each cost line is extrapolated from its own history and parents
+are formed by aggregation. What is driver-*shaped* is structural — forecast the leaves
+and let the parent fall out, never forecast a margin directly — which the backtest
+supports rather than assumes, since operating income is consistently the hardest series.
+"""
 
 from fpa.forecast.models import (
     MODELS,
