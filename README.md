@@ -12,7 +12,7 @@
   <img alt="Odoo"      src="https://img.shields.io/badge/Odoo-18.0-714B67?logo=odoo&logoColor=white">
   <img alt="NumPyro"   src="https://img.shields.io/badge/NumPyro-NUTS-EE4C2C">
   <img alt="Controls"  src="https://img.shields.io/badge/controls-23_(21_blocking)-2e7d32">
-  <img alt="Tests"     src="https://img.shields.io/badge/tests-167-2e7d32">
+  <img alt="Tests"     src="https://img.shields.io/badge/tests-168-2e7d32">
   <img alt="License"   src="https://img.shields.io/badge/license-MIT-blue">
 </p>
 
@@ -50,7 +50,7 @@ SEC EDGAR XBRL ──> three statements ──> disaggregation ──> Odoo (pos
 | Forecast vs seasonal-naive | MASE **0.936** on filed quarters — beats it by 6%, loses on 4 series |
 | Interval calibration | **provisional** — 8 of 9 backtest fits do not converge; see below |
 | Groundedness checker | **0% false acceptance, 100% parse coverage** over 364 cases |
-| Controls / tests | **23 controls** (21 blocking), **167 tests** |
+| Controls / tests | **23 controls** (21 blocking), **168 tests** |
 
 **Status:** built and verified end to end. `python -m fpa` exits 0 with 21/23 controls passing
 and zero blocking failures; the two open items are `WARN` and structural.
@@ -95,7 +95,7 @@ constraint rather than around the model:
 | Budget-vs-actual variance bridge (spend / mix decomposition) | Built |
 | Grounded LLM commentary, human-in-the-loop, append-only audit log | Built |
 | Measured checker error rates — false acceptance, false rejection, parse coverage | Built |
-| Test suite (167 tests) | Built |
+| Test suite (168 tests) | Built |
 | Bayesian posterior-predictive intervals (NumPyro), scored on coverage **and** sharpness | Built (opt-in) |
 
 ---
@@ -408,7 +408,7 @@ Without those, "0% false acceptance" is indistinguishable from an instrument tha
 that needs ~50 real drafts adjudicated by hand — a model writing "roughly six hundred
 million" in words would defeat every regex here, and nothing in this corpus would notice.
 
-**A test suite that only passes proves nothing.** A dozen of the 167 tests deliberately corrupt
+**A test suite that only passes proves nothing.** A dozen of the 168 tests deliberately corrupt
 the data and assert the control catches it — an unbalanced balance sheet, a double-counted
 line, a negative content-asset balance, a broken cash roll-forward, a share count misread as
 dollars, a double-counted region, a forecast split that no longer ties. One asserts pinball
@@ -777,7 +777,7 @@ python -m venv .venv && .venv/bin/pip install -r requirements.txt
 cp .env.example .env          # set EDGAR_USER_AGENT to "Your Name your@email"
 
 .venv/bin/python -m fpa       # ingest -> controls -> forecast; prints the control report
-.venv/bin/python -m pytest    # 167 tests
+.venv/bin/python -m pytest    # 168 tests
 .venv/bin/streamlit run app/Home.py
 ```
 
@@ -945,7 +945,7 @@ app/                 Streamlit: Overview, Controls, Forecast, Variance, Commenta
 sql/                 Extract queries as first-class artifacts
 reports/             Generated calibration report (--intervals)
 docker/              Odoo 18 + Postgres, OCA addons, fetch script
-tests/               167 tests, including tests that validate the validators
+tests/               168 tests, including tests that validate the validators
 data/                Pinned vintages + posterior + ERP proof (committed, ~1.8 MB)
 ```
 

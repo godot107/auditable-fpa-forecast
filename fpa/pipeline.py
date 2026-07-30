@@ -161,8 +161,19 @@ def backtest_frames(context: LedgerContext) -> tuple[pd.DataFrame, pd.DataFrame]
     monthly[("Total", "Opex")] = leaves.sum(axis=1)
     monthly[("Total", "Revenue")] = context.revenue.set_index("period")["amount"]
 
+    # Required, not filtered. This frame produces the headline MASE, and
+    # `[c for c in wanted if c in frame.columns]` would silently score five series instead
+    # of six if a tag were renamed or a derivation broke — a different number, reported with
+    # the same confidence. That is this codebase's signature defect, and it was still live in
+    # the path that produces the number the README leads with.
     filed_columns = ["revenue", *EXPENSE_ACCOUNTS, "operating_income"]
-    filed = context.quarterly[[c for c in filed_columns if c in context.quarterly.columns]].dropna()
+    missing = [c for c in filed_columns if c not in context.quarterly.columns]
+    if missing:
+        raise ValueError(
+            f"filed backtest frame is missing {missing} — refusing to score a partial set, "
+            "because the headline MASE would change with no signal that it had"
+        )
+    filed = context.quarterly[filed_columns].dropna()
     return monthly, filed
 
 

@@ -18,7 +18,7 @@ cp .env.example .env                     # set EDGAR_USER_AGENT
 
 .venv/bin/python -m fpa                  # ingest -> controls -> forecast
 .venv/bin/python -m fpa --refresh        # re-pull EDGAR instead of the pinned vintage
-.venv/bin/python -m pytest               # 167 tests (pytest.ini scopes to tests/)
+.venv/bin/python -m pytest               # 168 tests (pytest.ini scopes to tests/)
 .venv/bin/pip install -r requirements-bayes.txt   # optional: NumPyro + JAX
 .venv/bin/python -m fpa.forecast.posterior        # fit + pin the posterior (~1 MB, committed)
 .venv/bin/python -m fpa --groundedness   # + checker error rates (fast; exits 1 if unclean)
@@ -328,7 +328,7 @@ docker compose -f docker/docker-compose.yml up -d
 
 ## The bug class this codebase keeps finding
 
-**Eight separate defects, all the same shape: something absent produces a plausible number
+**Nine separate defects, all the same shape: something absent produces a plausible number
 instead of an error.** The list keeps growing, which is the point of keeping it — every
 addition was found by an instrument added for a different reason.
 
@@ -347,28 +347,60 @@ addition was found by an instrument added for a different reason.
    compounded with no contra-equity and the cash plug absorbed it: **$84B forecast against
    an actual $9B.** Only visible because the plug produced an absurd number rather than a
    merely wrong one.
+5. `backtest_frames` filtered the filed-series list the same way, so a renamed tag would have
+   scored five series instead of six and changed the **headline MASE** with no signal. Found
+   by the sweep below, not by a failure — nothing was missing on the day.
 
 *A count derived by subtraction instead of by asking:*
 
-5. `_auditability` computed `skipped = results − verified`, labelling two WARN failures as
+6. `_auditability` computed `skipped = results − verified`, labelling two WARN failures as
    skips.
-6. `gate_banner` did the same thing and printed *"2 skipped — a skip is not a pass"* on a
-   run that skipped nothing. Worse than (5): the skip/pass distinction was added
+7. `gate_banner` did the same thing and printed *"2 skipped — a skip is not a pass"* on a
+   run that skipped nothing. Worse than (6): the skip/pass distinction was added
    deliberately after a cold-start rehearsal, and the display of it was wrong.
 
 *A degradation or a guard that reports nothing:*
 
-7. `ets` fell back to `drift_seasonal` silently — **16.7%** of monthly backtest calls — so a
+8. `ets` fell back to `drift_seasonal` silently — **16.7%** of monthly backtest calls — so a
    score labelled `ets` was partly a different model.
-8. The app guarded `from fpa.forecast.bayes import forecast_intervals` with
+9. The app guarded `from fpa.forecast.bayes import forecast_intervals` with
    `except ImportError`. NumPyro is imported lazily *inside* `fit`, so that import always
    succeeds: the guard was unreachable and the real error surfaced later, outside the `try`,
    as a traceback on the public app.
 
-**None of the eight raises.** 1–4 are caught by controls that test an *identity* rather than
-a value — which is the whole argument for having them. 5–8 were caught by reading published
+**None of the nine raises.** 1–5 are caught by controls that test an *identity* rather than
+a value — which is the whole argument for having them. 6–9 were caught by reading published
 output as a stranger would: on the deployed app, in a rendered README, in a report table.
 Both instruments matter, and neither substitutes for the other.
+
+### The standing sweep
+
+All three mechanisms are **greppable**, which turns "be careful" into something a person can
+actually run. Do this before shipping anything that produces a number:
+
+```bash
+# A. membership guards that silently drop what they cannot find
+grep -rn "in .*\.columns" --include=*.py fpa/ app/
+
+# B. a count derived by subtraction rather than by asking
+grep -rnE "len\([^)]+\)\s*-\s*len\(" --include=*.py fpa/ app/
+
+# C. a fallback or except that returns without recording anything
+grep -rn -A3 "except Exception" --include=*.py fpa/ app/
+```
+
+**A is the one that keeps producing defects**, because it is a legitimate pattern half the
+time. The rule that separates the two cases: *if the caller would be wrong without the
+column, require it and raise; if the column is genuinely optional, the absence has to be
+reported somewhere a reader sees.* `if x in frame.columns` followed by silently doing less is
+never acceptable.
+
+Running this sweep after the eighth defect found the **ninth** — item 5 above. Nothing was
+missing on the day, which is precisely how this class survives a code review.
+
+For B and C the rule is absolute and the sweep should stay empty: **count by asking**
+(`sum(1 for x in xs if predicate(x))`), and **every fallback branch increments a counter or
+logs at WARN** — see `fpa.forecast.models._fell_back`.
 
 ## Grounding (textbook KB)
 

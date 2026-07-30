@@ -126,3 +126,24 @@ def test_the_validation_report_publishes_the_rate(frame):
     assert "does not always run" in markdown
     assert "too_short" in markdown
     assert "ets calls" in markdown
+
+
+# ---------------------------------------------------------------------------
+# The ninth defect: the headline frame must not be silently partial
+# ---------------------------------------------------------------------------
+def test_the_filed_backtest_frame_requires_every_series():
+    """Found by the standing sweep, not by a failure.
+
+    ``backtest_frames`` filtered the filed-series list with
+    ``[c for c in wanted if c in frame.columns]``, so a renamed tag or a broken derivation
+    would have scored five series instead of six — changing the headline MASE with no signal
+    that it had changed. Nothing was missing on the day, which is how this class survives.
+    """
+    from fpa.config import get_settings
+    from fpa.pipeline import backtest_frames, build_ledger
+
+    context = build_ledger(get_settings())
+    context.quarterly = context.quarterly.drop(columns=["marketing"])
+
+    with pytest.raises(ValueError, match="missing"):
+        backtest_frames(context)
