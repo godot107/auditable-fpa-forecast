@@ -365,8 +365,9 @@ docker compose -f docker/docker-compose.yml up -d
 
 ## The bug class this codebase keeps finding
 
-**Nine separate defects, all the same shape: something absent produces a plausible number
-instead of an error.** The list keeps growing, which is the point of keeping it — every
+**Ten separate defects. Nine share a shape — something absent produces a plausible number
+instead of an error — and the tenth is its mirror: something *present* was discarded before
+anyone could interpret it.** The list keeps growing, which is the point of keeping it — every
 addition was found by an instrument added for a different reason.
 
 *A missing input, silently treated as nothing:*
@@ -396,6 +397,17 @@ addition was found by an instrument added for a different reason.
    run that skipped nothing. Worse than (6): the skip/pass distinction was added
    deliberately after a cold-start rehearsal, and the display of it was wrong.
 
+*An aggregate that destroys the information needed to read it:*
+
+10. `backtest_intervals` reported `max(rhat)` across folds and nothing else, so one bad fold
+    condemned a series and the per-fold picture was unrecoverable. That produced a **published
+    diagnosis that was wrong**: "8 of 9 fits do not converge — rolling origin trains on 42–66
+    months and short series identify the scales poorly", repeated in the README, this file, the
+    app and the calibration report. Measured per fold, the **shortest** window has the *best*
+    pass rate (7/9 at 42 months, 4/9 at 54, 6/9 at 66) and every series has a clean fold. Four
+    of the ten failures miss on R-hat 1.011 against a 1.010 ceiling with ESS up to 1,106.
+    Nothing was missing here — the folds were computed and then averaged away.
+
 *A degradation or a guard that reports nothing:*
 
 8. `ets` fell back to `drift_seasonal` silently — **16.7%** of monthly backtest calls — so a
@@ -405,10 +417,15 @@ addition was found by an instrument added for a different reason.
    succeeds: the guard was unreachable and the real error surfaced later, outside the `try`,
    as a traceback on the public app.
 
-**None of the nine raises.** 1–5 are caught by controls that test an *identity* rather than
-a value — which is the whole argument for having them. 6–9 were caught by reading published
+**None of the ten raises.** 1–5 are caught by controls that test an *identity* rather than a
+value — which is the whole argument for having them. 6–9 were caught by reading published
 output as a stranger would: on the deployed app, in a rendered README, in a report table.
-Both instruments matter, and neither substitutes for the other.
+
+**10 needed a third instrument, and it is the most uncomfortable one: re-measuring a claim
+already believed.** No control could have caught it, because nothing was wrong with the
+arithmetic — the aggregate was correct and the *explanation attached to it* was not. It
+survived seven weeks of being repeated in four places. The lesson is narrow and worth keeping:
+when a number is published alongside a causal story, the story is the part nobody re-tests.
 
 ### The standing sweep
 
@@ -434,6 +451,12 @@ never acceptable.
 
 Running this sweep after the eighth defect found the **ninth** — item 5 above. Nothing was
 missing on the day, which is precisely how this class survives a code review.
+
+**Defect 10 is not greppable, and that is the point.** No pattern catches an aggregate that
+is arithmetically correct while the sentence next to it is wrong. The only instrument that
+found it was re-measuring a claim already believed — so the standing question to ask of any
+published number is not just *"is it right?"* but *"is the reason I gave for it still the
+reason?"*
 
 For B and C the rule is absolute and the sweep should stay empty: **count by asking**
 (`sum(1 for x in xs if predicate(x))`), and **every fallback branch increments a counter or
