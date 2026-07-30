@@ -1,0 +1,171 @@
+name: CI
+
+# A repository whose central argument is "controls must run automatically, not in a test
+# suite somebody remembers to trigger" had no CI. That was an awkward gap, so this closes it:
+# the pipeline itself runs on every push, the control gate has to pass, and the anti-pattern
+# sweep from CLAUDE.md runs as a job rather than as a paragraph.
+#
+# No secrets, no network, no ERP. The pinned Parquet vintages are committed, EDGAR_USER_AGENT
+# has a default and is only read on --refresh, and the app reads the materialized extract
+# rather than live Odoo. Verified against a clean clone before this file existed.
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    name: Tests and pipeline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # requirements.txt only. NumPyro and JAX are deliberately excluded — the pipeline and
+      # the whole suite must run without them, and the two NUTS tests carry
+      # `pytest.importorskip("numpyro")` so they skip rather than fail. If installing the
+      # heavy stack ever becomes necessary to get a green build, that invariant has broken.
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Tests
+        run: python -m pytest
+
+      # The pipeline is the real check. It ingests, builds three statements, runs 23 controls
+      # and forecasts — and exits non-zero if a blocking control fails. A green suite with a
+      # red pipeline would mean the tests are not testing the thing that ships.
+      - name: Pipeline — controls must gate cleanly
+        run: python -m fpa
+
+      # A skip is not a pass. Without the committed ERP snapshots four blocking controls have
+      # no data and skip while the run still exits 0, so assert the count of *verified*
+      # controls rather than trusting the exit code.
+      - name: Assert controls are verified, not skipped
+        run: |
+          python - <<'PY'
+          from fpa.config import get_settings
+          from fpa.pipeline import run
+
+          result = run(get_settings())
+          controls = result.controls
+          verified = len(controls.verified)
+          skipped = sum(1 for r in controls.results if r.skipped)
+
+          print(f"{verified}/{len(controls.results)} verified, {skipped} skipped, "
+                f"{len(controls.blocking_failures)} blocking failures")
+
+          assert not controls.blocking_failures, "blocking control failed"
+          assert skipped == 0, f"{skipped} control(s) skipped — a skip is not a pass"
+          assert verified >= 21, f"only {verified} controls verified"
+          PY
+
+      - name: Groundedness checker error rates
+        run: python -m fpa --groundedness
+
+  sweep:
+    name: Bug-class sweep
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The three mechanisms behind the nine defects listed in CLAUDE.md. Only one is
+      # enforceable: `if x in frame.columns` and bare `except` are legitimate roughly half the
+      # time, so those print for review rather than failing the build. Claiming otherwise
+      # would be a gate that has to be suppressed to ship, which is not a gate.
+      - name: B — a count derived by subtraction (must be empty)
+        run: |
+          if grep -rnE 'len\([^)]+\)\s*-\s*len\(' --include='*.py' fpa/ app/; then
+            echo "::error::A count derived by subtraction. Count by asking instead:"
+            echo "::error::  sum(1 for x in xs if predicate(x))"
+            echo "::error::This shipped twice — see CLAUDE.md defects 6 and 7."
+            exit 1
+          fi
+          echo "clean"
+
+      - name: A — membership guards that can silently drop (review)
+        run: |
+          echo "Each hit must either require the column and raise, or report the absence"
+          echo "somewhere a reader sees. Silently doing less is never acceptable."
+          grep -rn 'in .*\.columns' --include='*.py' fpa/ app/ || echo "none"
+
+      - name: C — fallbacks that may not record (review)
+        run: |
+          echo "Every fallback branch must increment a counter or log at WARN."
+          echo "See fpa.forecast.models._fell_back for the pattern."
+          grep -rn -A3 'except Exception' --include='*.py' fpa/ app/ || echo "none"
+
+  app:
+    name: Streamlit imports
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Two of the nine defects were import failures that only appeared on the deployed app:
+      # a guard on a lazy import that could never fire, and a reader coupled to a seeder it
+      # did not need. Importing every page here catches that class before a reader does.
+      - name: Every page imports without the heavy stack
+        run: |
+          python - <<'PY'
+          import ast
+          import importlib
+          import pathlib
+          import sys
+
+          sys.path[:0] = ["app", "."]
+          failed = []
+
+          for page in sorted(pathlib.Path("app").rglob("*.py")):
+              source = page.read_text()
+              tree = ast.parse(source, filename=str(page))
+              names = set()
+              for node in ast.walk(tree):
+                  if isinstance(node, ast.Import):
+                      names |= {a.name.split(".")[0] for a in node.names}
+                  elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
+                      names.add(node.module.split(".")[0])
+
+              for name in sorted(names):
+                  if name in {"streamlit", "plotly", "_shared"}:
+                      continue  # need a script run context, or are the app's own helpers
+                  try:
+                      importlib.import_module(name)
+                  except Exception as exc:
+                      failed.append(f"{page}: {name} -> {type(exc).__name__}: {exc}")
+
+              # And the app's own modules, which is where the real coupling bugs live.
+              for node in ast.walk(tree):
+                  if isinstance(node, ast.ImportFrom) and (node.module or "").startswith("fpa"):
+                      try:
+                          module = importlib.import_module(node.module)
+                          for alias in node.names:
+                              if not hasattr(module, alias.name):
+                                  failed.append(f"{page}: {node.module} has no {alias.name!r}")
+                      except Exception as exc:
+                          failed.append(f"{page}: {node.module} -> {type(exc).__name__}: {exc}")
+
+          if "numpyro" in sys.modules or "jax" in sys.modules:
+              failed.append("importing the app pulled in the heavy stack; it must stay lazy")
+
+          for line in failed:
+              print(f"::error::{line}")
+          print(f"checked {len(list(pathlib.Path('app').rglob('*.py')))} page(s)")
+          sys.exit(1 if failed else 0)
+          PY
