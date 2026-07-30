@@ -18,7 +18,7 @@ cp .env.example .env                     # set EDGAR_USER_AGENT
 
 .venv/bin/python -m fpa                  # ingest -> controls -> forecast
 .venv/bin/python -m fpa --refresh        # re-pull EDGAR instead of the pinned vintage
-.venv/bin/python -m pytest               # 168 tests (pytest.ini scopes to tests/)
+.venv/bin/python -m pytest               # 171 tests (pytest.ini scopes to tests/)
 .venv/bin/pip install -r requirements-bayes.txt   # optional: NumPyro + JAX
 .venv/bin/python -m fpa.forecast.posterior        # fit + pin the posterior (~1 MB, committed)
 .venv/bin/python -m fpa --groundedness   # + checker error rates (fast; exits 1 if unclean)
@@ -102,9 +102,20 @@ docker compose -f docker/docker-compose.yml up -d
   nothing implementing it. `fpa/forecast/statements.py` does: cost ratios × forecast
   revenue → expenses, `operating_income` as the residual, balance sheet from a
   retained-earnings roll plus working-capital days, cash as the plug.
-  `compare_derived_vs_direct` scores it on identical folds — **derived 1.240 vs direct
-  1.308**. Derivation wins by 5.2% *and both lose to seasonal-naive*, which is the more
-  useful result: the advice was directionally right and insufficient.
+  `compare_derived_vs_direct` scores four approaches on identical folds — **derived(last)
+  1.037, derived(mean) 1.240, direct 1.308, out-of-sample naive 1.417.** Derivation beats
+  extrapolation by 21% and beats what naive actually achieves by 27%. Two caveats stated
+  rather than buried: 1.037 is still above 1.0, because MASE's denominator is the *in-sample*
+  naive error and that is a different comparison from the out-of-sample 1.417; and three
+  approaches win at least one of four folds, so the ranking is unstable.
+- **The margin assumption was the bottleneck, not the revenue forecast.** Measured by giving
+  the model perfect foresight on revenue: fold 3 improves only 1.519 → 1.505. Revenue scores
+  MASE 0.155–0.266 on three of four folds. The margin swings ±5 points between adjacent
+  quarters while trending up, so a trailing four-quarter average lags it — fold 3 assumed
+  23.7% against an actual 29.4%. Ratios now carry forward as the **most recent quarter**
+  (`RATIO_METHOD = "last"`); a fitted slope was tested and rejected as overfitting
+  (`drift(8)` 1.176, `drift(12)` 1.397). EBIT is ~30% of revenue, so a 5.7-point margin miss
+  is a ~20% EBIT error with revenue exactly right.
 - **A cash plug makes the identity untestable, so the plug needs a diagnostic.**
   `plug_plausibility` rebuilds the change in cash from net income, non-cash charges, capex
   and buybacks and reports the gap. It earned its place immediately: the first version of

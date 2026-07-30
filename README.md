@@ -12,7 +12,7 @@
   <img alt="Odoo"      src="https://img.shields.io/badge/Odoo-18.0-714B67?logo=odoo&logoColor=white">
   <img alt="NumPyro"   src="https://img.shields.io/badge/NumPyro-NUTS-EE4C2C">
   <img alt="Controls"  src="https://img.shields.io/badge/controls-23_(21_blocking)-2e7d32">
-  <img alt="Tests"     src="https://img.shields.io/badge/tests-168-2e7d32">
+  <img alt="Tests"     src="https://img.shields.io/badge/tests-171-2e7d32">
   <img alt="License"   src="https://img.shields.io/badge/license-MIT-blue">
 </p>
 
@@ -50,7 +50,7 @@ SEC EDGAR XBRL ──> three statements ──> disaggregation ──> Odoo (pos
 | Forecast vs seasonal-naive | MASE **0.936** on filed quarters — beats it by 6%, loses on 4 series |
 | Interval calibration | **provisional** — 8 of 9 backtest fits do not converge; see below |
 | Groundedness checker | **0% false acceptance, 100% parse coverage** over 364 cases |
-| Controls / tests | **23 controls** (21 blocking), **168 tests** |
+| Controls / tests | **23 controls** (21 blocking), **171 tests** |
 
 **Status:** built and verified end to end. `python -m fpa` exits 0 with 21/23 controls passing
 and zero blocking failures; the two open items are `WARN` and structural.
@@ -95,7 +95,7 @@ constraint rather than around the model:
 | Budget-vs-actual variance bridge (spend / mix decomposition) | Built |
 | Grounded LLM commentary, human-in-the-loop, append-only audit log | Built |
 | Measured checker error rates — false acceptance, false rejection, parse coverage | Built |
-| Test suite (168 tests) | Built |
+| Test suite (171 tests) | Built |
 | Bayesian posterior-predictive intervals (NumPyro), scored on coverage **and** sharpness | Built (opt-in) |
 
 ---
@@ -223,18 +223,45 @@ revenue            ETS on filed quarterly data — MASE 0.343, the one series th
                                      cash as the plug that closes A = L + E
 ```
 
-| approach | mean MASE on `operating_income` |
-|---|---|
-| revenue-driven, EBIT derived | **1.240** |
-| EBIT extrapolated directly | 1.308 |
+| approach | mean MASE | fold 1 | fold 2 | fold 3 | fold 4 |
+|---|---|---|---|---|---|
+| `derived (ratio=last)` | **1.037** | 0.774 | 1.330 | 1.107 | 0.937 |
+| `derived (ratio=mean)` | 1.240 | 0.777 | 2.030 | 1.519 | 0.632 |
+| `direct` — EBIT extrapolated | 1.308 | 0.705 | 2.219 | 1.436 | 0.871 |
+| `seasonal_naive`, out of sample | 1.417 | 0.479 | 2.259 | 2.009 | 0.920 |
 
-**Derivation wins by 5.2% — and both lose to seasonal-naive.** Every value is above 1.0, so
-deriving operating income is the better of two methods that should not be used for guidance.
-The advice was directionally right and insufficient, which is a more useful result than a
-vindication would have been.
+Identical rolling-origin folds, identical horizon, identical model for the driver.
 
-Identical rolling-origin folds, identical horizon, identical model for the driver. The only
-difference is where operating income comes from.
+**Deriving operating income beats extrapolating it by 21%, and beats what seasonal-naive
+actually achieves out of sample by 27%.** The advice this README has been giving, finally
+measured instead of asserted.
+
+Two things stop that being a clean win, and both are stated because they are true:
+
+- **1.037 is still above 1.0.** MASE's denominator is the *in-sample* seasonal-naive error, so
+  a value above one means the method does not beat the benchmark on its own scale — even
+  though it comfortably beats the benchmark's *out-of-sample* score of 1.417. Those are
+  different comparisons and conflating them would overstate the result.
+- **The fold-level ranking is unstable.** Three different approaches win at least one of the
+  four folds. Choosing among variants on four folds is using a backtest to *choose* rather
+  than to *discard* (López de Prado, *AFML* p.180), so 1.037 is the optimistic end of a range.
+
+### What made the difference, and it was not the revenue forecast
+
+The error decomposes cleanly. Give the model **perfect foresight on revenue** and fold 3 only
+improves from 1.519 to 1.505 — revenue is forecast at MASE 0.155–0.266 on three of four folds
+and is not the bottleneck. **The margin assumption is.**
+
+Netflix's operating margin over twelve quarters: `22.4% 16.9% 28.1% 27.2% 29.6% 22.2% 31.7%
+34.1% 28.2% 24.5% 32.3% 33.4%` — trending hard and swinging ±5 points between adjacent
+quarters. A trailing four-quarter average structurally lags it: fold 3 assumed **23.7%**
+against an actual **29.4%**, roughly $500M of EBIT per quarter.
+
+So the ratios carry forward as the **most recent quarter** rather than a trailing mean. On a
+trending series the last observation is the better estimate, and a fitted slope was tested and
+rejected — it overfits a series that noisy (`drift(8)` scored 1.176, `drift(12)` 1.397). And
+because EBIT is ~30% of revenue, a 5.7-point margin miss is a **~20% error in EBIT even with
+revenue exactly right**: the "small difference between two large numbers" effect, quantified.
 
 **The forecast articulates.** Worst `|A − (L+E)|` across the forecast quarters is **$0.00** —
 the identity a blocking control proves on 26 actual quarters is not broken by the projection.
@@ -408,7 +435,7 @@ Without those, "0% false acceptance" is indistinguishable from an instrument tha
 that needs ~50 real drafts adjudicated by hand — a model writing "roughly six hundred
 million" in words would defeat every regex here, and nothing in this corpus would notice.
 
-**A test suite that only passes proves nothing.** A dozen of the 168 tests deliberately corrupt
+**A test suite that only passes proves nothing.** A dozen of the 171 tests deliberately corrupt
 the data and assert the control catches it — an unbalanced balance sheet, a double-counted
 line, a negative content-asset balance, a broken cash roll-forward, a share count misread as
 dollars, a double-counted region, a forecast split that no longer ties. One asserts pinball
@@ -777,7 +804,7 @@ python -m venv .venv && .venv/bin/pip install -r requirements.txt
 cp .env.example .env          # set EDGAR_USER_AGENT to "Your Name your@email"
 
 .venv/bin/python -m fpa       # ingest -> controls -> forecast; prints the control report
-.venv/bin/python -m pytest    # 168 tests
+.venv/bin/python -m pytest    # 171 tests
 .venv/bin/streamlit run app/Home.py
 ```
 
@@ -945,7 +972,7 @@ app/                 Streamlit: Overview, Controls, Forecast, Variance, Commenta
 sql/                 Extract queries as first-class artifacts
 reports/             Generated calibration report (--intervals)
 docker/              Odoo 18 + Postgres, OCA addons, fetch script
-tests/               168 tests, including tests that validate the validators
+tests/               171 tests, including tests that validate the validators
 data/                Pinned vintages + posterior + ERP proof (committed, ~1.8 MB)
 ```
 

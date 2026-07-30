@@ -18,6 +18,7 @@ inconsistency in the project.
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -53,24 +54,40 @@ def test_operating_income_is_the_residual_not_a_forecast(forecasts):
 def test_every_expense_is_a_fixed_share_of_forecast_revenue(forecasts):
     income, _ = forecasts
     for account, ratio in income.attrs["cost_ratios"].items():
-        implied = (income[account] / income["revenue"]).round(10).unique()
-        assert len(implied) == 1, f"{account} ratio drifts across the horizon"
-        assert implied[0] == pytest.approx(ratio, rel=1e-9)
+        implied = income[account] / income["revenue"]
+        # Constant across the horizon, and equal to the stated ratio. Compared unrounded:
+        # rounding to 10dp here once broke the test against its own 1e-9 tolerance.
+        assert np.allclose(implied, ratio, rtol=1e-12), f"{account} drifts across the horizon"
 
 
 def test_deriving_operating_income_requires_every_expense_line(context):
     """A residual computed from a partial set is wrong and must not be produced silently."""
     trimmed = context.quarterly.drop(columns=["marketing"])
-    with pytest.raises(ValueError, match="cannot derive operating income"):
+    with pytest.raises(ValueError, match="need every expense line"):
         S.forecast_income_statement(trimmed, 4)
 
 
-def test_ratios_use_the_trailing_window_not_all_history(context):
+def test_the_default_ratio_method_ignores_the_window(context):
+    """`last` takes the most recent quarter, so the window cannot matter to it."""
+    for window in (2, 4, 12):
+        assert S.cost_ratios(context.quarterly, window=window, method="last").equals(
+            S.cost_ratios(context.quarterly, window=4, method="last")
+        )
+
+
+def test_an_unknown_ratio_method_raises(context):
+    with pytest.raises(ValueError, match="ratio method"):
+        S.cost_ratios(context.quarterly, method="exponential")
+
+
+def test_the_mean_ratio_method_uses_the_trailing_window(context):
     """Measured, not stylistic: cost of revenue averages ~56.6% across 26 quarters and
     ~51.0% over the last four, because the mix shifted. A full-history ratio would forecast
     a margin the business left behind."""
-    trailing = S.cost_ratios(context.quarterly, window=4)["cost_of_revenue"]
-    full = S.cost_ratios(context.quarterly, window=len(context.quarterly))["cost_of_revenue"]
+    trailing = S.cost_ratios(context.quarterly, window=4, method="mean")["cost_of_revenue"]
+    full = S.cost_ratios(
+        context.quarterly, window=len(context.quarterly), method="mean"
+    )["cost_of_revenue"]
     assert trailing < full - 0.02
 
 
@@ -142,11 +159,27 @@ def test_the_plug_is_checked_against_an_independent_roll_forward(context, foreca
 # ---------------------------------------------------------------------------
 # The experiment
 # ---------------------------------------------------------------------------
-def test_derived_and_direct_are_scored_on_identical_folds(context):
+def test_every_approach_is_scored_on_identical_folds(context):
+    """Four approaches now, and a comparison across different folds is not a comparison."""
     comparison = S.compare_derived_vs_direct(context.quarterly, horizon=4, folds=4)
-    counts = comparison.groupby("approach")["fold"].apply(set)
-    assert counts["derived"] == counts["direct"], "the two approaches must share folds"
+    by_approach = comparison.groupby("approach")["fold"].apply(set)
+
+    assert len(by_approach) == 4, "derived-last, derived-mean, direct and naive"
+    assert len(set(map(frozenset, by_approach))) == 1, "all approaches must share folds"
     assert comparison["mase"].notna().all()
+
+
+def test_the_chosen_ratio_method_beats_the_one_it_replaced(context):
+    """The reason `last` is the default, asserted so a regression is visible.
+
+    Not a strong claim — four folds, and the fold-level ranking is unstable — which is why
+    the report says so rather than quoting the mean alone.
+    """
+    comparison = S.compare_derived_vs_direct(context.quarterly, horizon=4, folds=4)
+    means = comparison.groupby("approach")["mase"].mean()
+
+    assert means["derived (ratio=last)"] < means["derived (ratio=mean)"]
+    assert means["derived (ratio=last)"] < means["seasonal_naive"]
 
 
 def test_the_report_states_the_verdict_either_way(context, forecasts):
@@ -155,7 +188,9 @@ def test_the_report_states_the_verdict_either_way(context, forecasts):
     comparison = S.compare_derived_vs_direct(context.quarterly, horizon=4, folds=4)
     markdown = S.statement_report_markdown(income, balance, comparison)
 
-    assert "Derivation" in markdown
+    assert "wins on the mean" in markdown
+    # The selection caveat has to travel with the number.
+    assert "ranking is unstable" in markdown
     assert "cash as the plug" in markdown
     # The assumptions have to be on the page, not just in the code.
     assert "as % of revenue" in markdown and "days" in markdown
