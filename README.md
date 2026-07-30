@@ -345,6 +345,91 @@ validate the validators.
 
 ---
 
+## Architecture — ERP, EPM, and consumption
+
+Three layers, and the boundaries between them are the design. **Odoo is the ERP** — the system
+of record for actuals. **`fpa/` is the EPM** — planning, versioning, variance and reporting
+definitions, because Odoo has no forecasting engine and neither does `mis_builder`. **The
+Streamlit app is neither**; it renders a pinned snapshot and computes nothing.
+
+```mermaid
+flowchart TB
+    EDGAR["<b>SEC EDGAR XBRL</b><br/>34 tags across 3 units<br/>every fact carries the accession<br/>number of the filing it was tagged in"]
+
+    subgraph EPMBOX["<b>EPM</b> — fpa/ · the OneStream stand-in, in Python"]
+        direction TB
+        ING["<b>ingest/</b><br/>three statements · Q4 derivation<br/>restatement dedupe by value"]
+        DIS["<b>ledger/disaggregate</b><br/>monthly x cost center · MODELED<br/>forced to foot to filed at 1e-12"]
+        PLAN["<b>ledger/budget</b> · plan<br/><b>forecast/</b> · bottom-up hierarchy<br/>MASE vs seasonal-naive · pinned posterior"]
+        ANA["<b>variance/bridge</b> · spend and mix<br/><b>narrative/</b> · groundedness gate"]
+    end
+
+    subgraph ERPBOX["<b>ERP</b> — Odoo 18 · system of record for actuals"]
+        direction TB
+        BSJ["<b>BS journal</b> · filed positions<br/>quarterly movements, no clearing line<br/>Odoo refuses it if it does not balance"]
+        FPAJ["<b>FPA journal</b> · modeled allocations<br/>analytic accounts as cost centers<br/>settles to 990000 — a plug"]
+        VERS["<b>crossovered.budget</b><br/>the version dimension<br/>Plan beside Forecast, same accounts"]
+        MISR["<b>mis_builder</b><br/>report definitions, committed as data"]
+    end
+
+    GATE{"<b>control gate</b><br/>23 checks, 21 blocking"}
+
+    subgraph CONSBOX["<b>Consumption</b>"]
+        direction TB
+        SNAP["<b>pinned Parquet vintage</b><br/>committed, offline, reproducible"]
+        APP["<b>Streamlit</b> · 6 pages<br/>REAL / MODELED / IMPLIED / FORECAST"]
+        AUD["<b>audit/log</b><br/>append-only approvals"]
+    end
+
+    STOP["no forecast<br/>no commentary<br/>nothing renders"]
+
+    EDGAR -->|"pinned vintage — no network on the demo path"| ING
+    ING --> DIS
+    DIS --> PLAN
+    PLAN --> ANA
+    ING -->|"post"| BSJ
+    DIS -->|"post"| FPAJ
+    PLAN -->|"publish"| VERS
+    BSJ --> MISR
+    FPAJ --> MISR
+    BSJ -->|"SQL extract"| SNAP
+    FPAJ -->|"SQL extract"| SNAP
+    SNAP -->|"reconcile to the filing it started from"| GATE
+    ANA --> GATE
+    GATE -->|"pass"| APP
+    GATE -->|"any blocking failure"| STOP
+    ANA --> AUD
+
+    style EDGAR fill:#e8f4fd,stroke:#1565c0,color:#000
+    style ERPBOX fill:#f6effa,stroke:#714B67,color:#000
+    style EPMBOX fill:#fff4e6,stroke:#ef6c00,color:#000
+    style CONSBOX fill:#e9f7ee,stroke:#2e7d32,color:#000
+    style GATE fill:#fdeaea,stroke:#c0392b,color:#000
+    style STOP fill:#fdeaea,stroke:#c0392b,color:#000
+```
+
+Four things in that picture are load-bearing:
+
+- **The round trip.** `fpa/` posts to Odoo and then reads back out through SQL, reconciling to the
+  10-Q it started from — **$0.02 on $10.4B** for the P&L, **$0.00** across 17 lines × 26 quarter
+  ends for the balance sheet. The ERP is a witness, not a destination.
+- **The extract boundary.** Consumption reads the **pinned Parquet vintage**, never live Odoo.
+  That is why the app runs with the containers stopped, and why it runs hosted with no database
+  at all. It is also how FP&A actually works — nobody runs planning queries against a live
+  transactional ERP.
+- **The gate sits before consumption, not beside it.** A blocking failure produces no forecast
+  and no commentary. Not a warning in a log.
+- **The version dimension lives in the ERP; the engine does not.** `crossovered.budget` holds
+  Plan beside Forecast against the same accounts, and Actual is never loaded — Odoo derives it
+  from the analytic lines.
+
+**What a real EPM has that this does not:** consolidation (single entity, no intercompany
+elimination, no FX translation) and a data-entry loop. There is no cell anywhere in this project
+you can type a number into — every figure is filed or computed, which is the point, and also the
+reason this is a reporting-and-forecasting pipeline rather than a planning tool.
+
+---
+
 ## Odoo as the ERP
 
 Companies run FP&A off SAP, Oracle or NetSuite feeding an EPM tool. This project uses
