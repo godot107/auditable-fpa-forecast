@@ -328,8 +328,11 @@ docker compose -f docker/docker-compose.yml up -d
 
 ## The bug class this codebase keeps finding
 
-Three separate defects, all the same shape: **a missing input that produces a plausible
-number instead of an error.**
+**Eight separate defects, all the same shape: something absent produces a plausible number
+instead of an error.** The list keeps growing, which is the point of keeping it — every
+addition was found by an instrument added for a different reason.
+
+*A missing input, silently treated as nothing:*
 
 1. `_derive_q4` summed Q1–Q3 with `.sum()`. Pre-tax income is only tagged as a quarter
    from 2020-Q3, so 2020-Q4 came out as `FY − Q3` — **$1.83B too high**, with two
@@ -339,9 +342,33 @@ number instead of an error.**
    assumption about short-term investments.
 3. The original ingest hardcoded `units["USD"]`, which for a per-share tag returns `[]`
    rather than raising.
+4. `forecast_balance_sheet` guarded each line with `if column in history.columns` while
+   reading the wrong frame, so `treasury_stock` — a **−$28B** residual — vanished. Equity
+   compounded with no contra-equity and the cash plug absorbed it: **$84B forecast against
+   an actual $9B.** Only visible because the plug produced an absurd number rather than a
+   merely wrong one.
 
-None of the three raises. Each is caught by a control that tests an *identity*, not a
-value — which is the argument for having them at all.
+*A count derived by subtraction instead of by asking:*
+
+5. `_auditability` computed `skipped = results − verified`, labelling two WARN failures as
+   skips.
+6. `gate_banner` did the same thing and printed *"2 skipped — a skip is not a pass"* on a
+   run that skipped nothing. Worse than (5): the skip/pass distinction was added
+   deliberately after a cold-start rehearsal, and the display of it was wrong.
+
+*A degradation or a guard that reports nothing:*
+
+7. `ets` fell back to `drift_seasonal` silently — **16.7%** of monthly backtest calls — so a
+   score labelled `ets` was partly a different model.
+8. The app guarded `from fpa.forecast.bayes import forecast_intervals` with
+   `except ImportError`. NumPyro is imported lazily *inside* `fit`, so that import always
+   succeeds: the guard was unreachable and the real error surfaced later, outside the `try`,
+   as a traceback on the public app.
+
+**None of the eight raises.** 1–4 are caught by controls that test an *identity* rather than
+a value — which is the whole argument for having them. 5–8 were caught by reading published
+output as a stranger would: on the deployed app, in a rendered README, in a report table.
+Both instruments matter, and neither substitutes for the other.
 
 ## Grounding (textbook KB)
 
