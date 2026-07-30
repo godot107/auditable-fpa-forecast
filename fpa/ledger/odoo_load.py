@@ -103,11 +103,11 @@ def _sources(
 
 def _source_html(cik: str, sources: list[tuple[str, str, pd.Timestamp]]) -> str:
     lines = [
-        f'{form} accession <b>{accn}</b>, filed {filed:%Y-%m-%d}<br/>'
+        f'{form} accession <b>{accn}</b>, filed {filed:%Y-%m-%d}<br>'
         f'<a href="{filing_url(cik, accn)}">{filing_url(cik, accn)}</a>'
         for accn, form, filed in sources
     ]
-    return "<br/>".join(lines)
+    return "<br>".join(lines)
 
 
 def balance_sheet_narration(
@@ -135,13 +135,13 @@ def balance_sheet_narration(
         parts.append("<p>No accession on file for this period end.</p>")
 
     parts.append(
-        f"<p><b>REAL</b> ({len(filed_accounts)} lines) — read directly from an XBRL tag:<br/>"
+        f"<p><b>REAL</b> ({len(filed_accounts)} lines) — read directly from an XBRL tag:<br>"
         f"{', '.join(sorted(filed_accounts))}</p>"
     )
     if derived:
         parts.append(
             f"<p><b>IMPLIED</b> ({len(derived)} lines) — not tagged by the filer; derived as a "
-            f"residual of filed totals, sign asserted and magnitude checked on every run:<br/>"
+            f"residual of filed totals, sign asserted and magnitude checked on every run:<br>"
             f"{', '.join(sorted(derived))}</p>"
         )
     parts.append(
@@ -158,9 +158,24 @@ def allocation_narration(accessions: pd.DataFrame, period: pd.Timestamp, cik: st
     roll up to a filed quarterly total, but this month in isolation is not a figure
     anybody reported: both the intra-quarter phasing and the cost-center split are
     modeled by this project.
+
+    **An expense line without an accession is named, not omitted.** ``MarketingExpense``
+    was last tagged for the period ending 2024-09-30 and is recovered after that from
+    ``Revenue − CostOfRevenue − R&D − G&A − OperatingIncome``. Citing one 10-Q and
+    saying nothing else implies all four expense lines came from it — so the untagged
+    ones are listed with the identity that produced them. Silently dropping an account
+    the lookup could not source is exactly how a provenance block overstates.
     """
     quarter = _quarter_end(period)
     sources = _sources(accessions, quarter, EXPENSE_ACCOUNTS)
+
+    sourced = set(
+        accessions[
+            (accessions["end"] == pd.Timestamp(quarter))
+            & (accessions["account"].isin(EXPENSE_ACCOUNTS))
+        ]["account"]
+    )
+    untagged = tuple(a for a in EXPENSE_ACCOUNTS if a not in sourced)
 
     parts = [
         f"<p><b>MODELED allocation — {pd.Timestamp(period):%Y-%m}</b></p>",
@@ -172,6 +187,21 @@ def allocation_narration(accessions: pd.DataFrame, period: pd.Timestamp, cik: st
         if sources
         else "<p>No accession on file for that quarter.</p>"
     )
+    if len(sources) > 1:
+        parts.append(
+            "<p><b>More than one filing backs this quarter.</b> The most recently filed "
+            "value wins, so a line restated in a later comparative is cited to the "
+            "filing it was last reported in, not the one it first appeared in.</p>"
+        )
+    if untagged:
+        parts.append(
+            f"<p><b>IMPLIED</b> — not tagged by the filer for this period and therefore "
+            f"not covered by the accession above: <code>{', '.join(untagged)}</code>. "
+            f"Recovered from the identity "
+            f"<code>Revenue − CostOfRevenue − R&amp;D − G&amp;A − OperatingIncome</code>, which "
+            f"reproduces the filed tag to the dollar across all 19 quarters where both "
+            f"exist.</p>"
+        )
     parts.append(
         "<p><b>This month is not a filed figure.</b> The filer reports quarterly, and "
         "publishes no cost-center breakdown at all. Two layers are modeled here: the "
@@ -466,15 +496,20 @@ def _existing_move(client: OdooClient, ref: str) -> dict | None:
 
 
 def _backfill_narration(client: OdooClient, move: dict, narration: str) -> bool:
-    """Write provenance onto an already-seeded entry that has none.
+    """Bring an already-seeded entry's provenance up to date.
 
-    Without this, provenance would only reach entries created after this change and
-    an existing database would need ``--reset`` — re-posting ~100 entries to add a
+    Without this, provenance would only reach entries created after the change and an
+    existing database would need ``--reset`` — re-posting ~100 entries to update a
     comment. ``narration`` is not an accounting field, so Odoo permits the write on a
-    posted move; if a version disagrees the entry keeps its numbers and loses only
-    the note, which is why this warns rather than raises.
+    posted move; if a version disagrees the entry keeps its numbers and loses only the
+    note, which is why this warns rather than raises.
+
+    Writes whenever the text **differs**, not only when it is absent. The first version
+    wrote only into an empty field, which meant improving the block left every existing
+    entry showing the older, weaker claim — and the whole point of the block is that it
+    is accurate. Comparing content keeps it idempotent while letting corrections land.
     """
-    if not narration or str(move.get("narration") or "").strip():
+    if not narration or str(move.get("narration") or "") == narration:
         return False
     try:
         client.execute("account.move", "write", [move["id"]], {"narration": narration})

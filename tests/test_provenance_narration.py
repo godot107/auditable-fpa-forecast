@@ -14,6 +14,8 @@ being a filed figure.
 
 from __future__ import annotations
 
+import re
+
 import pandas as pd
 import pytest
 
@@ -119,6 +121,71 @@ def test_allocation_narration_denies_being_a_filed_figure(accessions, cik):
 def test_allocation_narration_cites_the_quarter_the_month_belongs_to(accessions, cik):
     html = allocation_narration(accessions, pd.Timestamp("2026-01-31"), cik)
     assert "2026-03-31" in html, "January must cite the Q1 filing, not its own month end"
+
+
+def test_an_untagged_expense_line_is_named_not_omitted(accessions, cik):
+    """The gap that made the citation overstate.
+
+    ``MarketingExpense`` stops being tagged after 2024-09-30, so the accession behind a
+    2026 quarter covers three of the four expense lines. Citing one 10-Q and saying
+    nothing else implies all four came from it. The block must name the untagged line
+    and the identity that produced it.
+    """
+    html = allocation_narration(accessions, pd.Timestamp("2026-06-30"), cik)
+
+    assert "0001065280-26-000212" in html
+    assert "IMPLIED" in html
+    assert "marketing" in html
+    assert "not covered by the accession above" in html
+    assert "OperatingIncome" in html, "the identity that recovers it must be stated"
+
+
+def test_a_fully_tagged_quarter_carries_no_implied_block(accessions, cik):
+    """The caveat must be conditional, or it stops meaning anything.
+
+    2021-Q2 has all four expense lines tagged, so there is nothing to disclaim.
+    """
+    html = allocation_narration(accessions, pd.Timestamp("2021-05-31"), cik)
+    assert "IMPLIED" not in html
+    assert "0001065280-22-000257" in html
+
+
+def test_a_multi_filing_quarter_says_which_value_won(accessions, cik):
+    """2024-Q3 draws on two filings, and the reason is not obvious.
+
+    Three lines come from a 2025 comparative because the dedupe keeps the most recently
+    filed value; marketing comes from the original 2024 10-Q because that is the last
+    time it was tagged. Without the note, a reader asks why a 2024 entry points at a
+    2025 document.
+    """
+    html = allocation_narration(accessions, pd.Timestamp("2024-08-31"), cik)
+
+    assert "0001065280-24-000287" in html
+    assert "0001065280-25-000406" in html
+    assert "More than one filing backs this quarter" in html
+    assert "most recently filed value wins" in html
+
+
+# ---------------------------------------------------------------------------
+# The HTML has to survive Odoo's sanitizer
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize("month", ["2026-06-30", "2024-08-31", "2021-05-31"])
+def test_emitted_html_is_round_trip_stable(accessions, cik, month):
+    """Why the backfill is idempotent rather than rewriting every entry each run.
+
+    ``_backfill_narration`` writes when the stored text differs from the generated text.
+    Odoo normalises HTML on write — ``<br/>`` becomes ``<br>`` and a bare ``&`` becomes
+    ``&amp;`` — so emitting either form guarantees a permanent mismatch and a log line
+    claiming 104 entries changed on every run. Measured against a live instance before
+    this test was written.
+    """
+    for html in (
+        allocation_narration(accessions, pd.Timestamp(month), cik),
+        balance_sheet_narration(accessions, pd.Timestamp(month), cik),
+    ):
+        assert "<br/>" not in html, "Odoo stores <br>; emitting <br/> never matches"
+        # Every ampersand must already be an entity, or Odoo escapes it on write.
+        assert not re.search(r"&(?!amp;|lt;|gt;|quot;|#)", html), "unescaped & in narration"
 
 
 @pytest.mark.parametrize(
