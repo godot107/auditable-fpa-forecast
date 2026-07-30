@@ -7,7 +7,9 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from _shared import badge, cost_center_disclaimer, gate_banner, pipeline, setup
+from fpa.config import EXPENSE_ACCOUNTS
 from fpa.forecast.models import leaf_series
+from fpa.forecast.statements import statement_report_markdown
 from fpa.forecast.posterior import load_posterior, posterior_intervals, stale_series
 
 setup("Forecast")
@@ -113,6 +115,51 @@ st.dataframe((pivot / 1e6).round(1), width='stretch')
 st.caption("$M. Columns sum to the total forecast above — bottom-up reconciliation.")
 
 # --- Posterior-predictive intervals ---------------------------------------
+# --- Three-statement forecast ---------------------------------------------
+# The filed half of this page. Everything above forecasts invented cost centers; this
+# forecasts one filed series and derives the rest, so it carries no synthetic granularity.
+if result.forecast_income is not None and result.forecast_balance is not None:
+    st.divider()
+    st.subheader("Three-statement forecast — filed data only")
+    st.caption(
+        "No cost center appears below. Only **revenue** is forecast (MASE 0.343, the best-"
+        "measured series in the project); expenses are driven off it by trailing cost ratios, "
+        "operating income is the **residual**, and the balance sheet is derived with cash as "
+        "the plug."
+    )
+
+    left, right = st.columns(2)
+    with left:
+        st.markdown("**Income statement** ($M)")
+        shown = ["revenue", *EXPENSE_ACCOUNTS, "operating_income", "net_income"]
+        st.dataframe(
+            (result.forecast_income[shown].T / 1e6).round(0),
+            width="stretch",
+        )
+    with right:
+        st.markdown("**Balance sheet, derived** ($M)")
+        st.dataframe(
+            (result.forecast_balance[["assets", "liabilities", "equity", "cash"]].T / 1e6).round(0),
+            width="stretch",
+        )
+
+    worst = float(result.forecast_balance["balance_check"].abs().max())
+    st.success(
+        f"**The forecast articulates** — worst `|A − (L+E)|` across four forecast quarters is "
+        f"**${worst:,.2f}**. The identity a blocking control proves on 26 actual quarters is "
+        "not broken by the projection."
+    )
+
+    if result.derived_vs_direct is not None:
+        report = statement_report_markdown(
+            result.forecast_income, result.forecast_balance, result.derived_vs_direct
+        )
+        # Drop the report's own title and articulation paragraph — both are already on the
+        # page above — and keep the experiment and the stated assumptions.
+        _, _, body = report.partition("### Does deriving EBIT beat forecasting it?")
+        with st.expander("Does deriving operating income beat forecasting it? — and the assumptions"):
+            st.markdown("### Does deriving EBIT beat forecasting it?" + body)
+
 st.divider()
 st.subheader("Posterior-predictive interval")
 st.caption(

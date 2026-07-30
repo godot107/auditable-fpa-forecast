@@ -176,3 +176,45 @@ if not bs.empty and "balance_check" in bs:
         f"Balance-sheet articulation on filed figures — worst |A − (L+E)| across "
         f"{bs['assets'].notna().sum()} quarters: **${worst:,.0f}**."
     )
+
+# --- Forecast, from the latest filed quarter ------------------------------
+# Deliberately outside the period selector. A forecast always runs from the end of the
+# filed history, so letting it appear to follow a selection of FY2022 Q3 would imply a
+# projection made at that date, which is not what this is.
+if result.forecast_income is not None and result.forecast_balance is not None:
+    st.divider()
+    income, projected = result.forecast_income, result.forecast_balance
+    first, last_q = income.iloc[0], income.iloc[-1]
+
+    st.subheader(
+        f"Next four quarters — {income.index[0]:%b %Y} to {income.index[-1]:%b %Y}"
+    )
+    st.caption(
+        "Only **revenue** is forecast. Expenses are driven off it by trailing cost ratios, "
+        "operating income is the residual, and the balance sheet is derived with cash as the "
+        "plug — so the projection satisfies A = L + E rather than being checked against it."
+    )
+
+    cols = st.columns(4)
+    for col, (label, value, kind, note) in zip(
+        cols,
+        [
+            ("Revenue, next quarter", money(first["revenue"], "B"), "FORECAST",
+             f"{first['revenue'] / latest['revenue'] - 1:+.1%} vs {period:%b %Y}"),
+            ("Revenue, 4 quarters out", money(last_q["revenue"], "B"), "FORECAST",
+             f"ETS · MASE 0.343 on filed data"),
+            ("Operating income", money(last_q["operating_income"], "B"), "IMPLIED",
+             "residual: revenue − driven costs"),
+            ("Forecast |A − (L+E)|", f"${projected['balance_check'].abs().max():,.2f}", "REAL",
+             "the identity survives the projection"),
+        ],
+    ):
+        col.markdown(metric_card(label, value, kind, note), unsafe_allow_html=True)
+
+    st.markdown(
+        f"{badge('FORECAST')} revenue, the only series forecast. "
+        f"{badge('IMPLIED')} everything derived from it. "
+        "Free cash flow is **not** forecast — it backtests at MASE 7.571, seven times worse "
+        "than a naive forecast, and reporting that is more useful than a number.",
+        unsafe_allow_html=True,
+    )
