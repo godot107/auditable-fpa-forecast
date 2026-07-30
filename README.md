@@ -124,10 +124,40 @@ non-naive models there are four losing (series, model) pairs, and the validation
 every one.
 
 Both numbers are reported side by side in the app, with the gap named as the artifact.
-MAPE is deliberately not the headline: it is dominated by small-denominator periods, so at
-cost-center granularity a modest miss on a small department outweighs a large miss on Content
-(Phillips, *Pricing and Revenue Optimization* 2e, p.94). Weighted MAPE is reported alongside
-MASE.
+
+### Why MASE, and not MAPE
+
+**MASE divides the error by a benchmark computed from the same series** — the in-sample
+seasonal-naive error, i.e. how wrong you would have been just saying *"same period last
+year."* That makes the number self-interpreting: below 1.0 beats the benchmark, above 1.0
+loses to it and you should ship the naive forecast instead. `marketing` at **1.421** means the
+model is 42% worse than doing nothing, and nobody has to be told how to read that.
+
+A raw error cannot be judged at all. "Mean absolute error of $180M" is excellent on Content
+and catastrophic on Facilities, and comparable across neither.
+
+**MAPE is actively wrong at this granularity.** It divides by the actual, so small
+denominators dominate — and the cost centers here span **24×**:
+
+| | mean monthly spend | a $4M miss reads as |
+|---|---|---|
+| `G&A / Facilities` | $32.1M | 12.5% |
+| `Content / Licensed Content` | $780.4M | 0.5% |
+
+Average those and the smallest department outvotes the largest by a factor of 24, despite
+mattering 24× less to the business (Phillips, *Pricing and Revenue Optimization* 2e, p.94).
+This corrected the build rather than decorating it — the original plan specified MAPE.
+Weighted MAPE is reported alongside, which fixes the weighting but still cannot say whether
+the model beat anything.
+
+Three properties earn it the headline slot: it is **scale-free**, so nine cost centers across
+two orders of magnitude are comparable; it is **defined at zero**, where MAPE divides by zero
+on a zero-spend month; and **the benchmark is the denominator**, so a day-1 invariant of this
+repo — never publish a metric without its benchmark — cannot be violated by accident.
+
+What MASE does not do is assess an *interval*. That is why the posterior layer is scored on
+coverage **and** pinball loss instead: a model predicting ±$10B every month is perfectly
+calibrated and perfectly useless (McElreath 2e, p.223).
 
 **And 0.936 is a selected maximum, not an unbiased estimate.** Three models are scored on
 the same rolling-origin backtest and the winner is the one quoted. Picking the best from the
